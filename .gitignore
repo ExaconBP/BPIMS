@@ -1,0 +1,46 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+.expo/
+.expo-shared/
+.vscode/
+.DS_Store
+
+# React Native build files
+android/app/build/
+android/.gradle/
+android/.idea/
+android/local.properties
+android/.cxx/
+android/app/debug.keystore
+ios/Pods/
+ios/build/
+ios/.DS_Store
+
+# Python dependencies & virtual environment
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+.venv/
+
+# Python logs & cache
+*.log
+.pytest_cache/
+.mypy_cache/
+db.sqlite3
+migrations/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.development
+
+#python config files
+.db.py
+.config.py
+/BP-IMS API/db.py
+/BP-IMS API/config.py
