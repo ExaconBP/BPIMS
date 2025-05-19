@@ -1,4 +1,3 @@
-
 import { ResponseType } from "axios";
 import { Alert, PermissionsAndroid, Platform } from 'react-native';
 import FileViewer from 'react-native-file-viewer';
@@ -7,6 +6,12 @@ import { CallResultDto } from '../types/CallResultDto';
 import { DailyTransactionDto } from '../types/reportType';
 import { CartDto, CategoryDto, ItemDto, TransactionDto, TransactionRequestDto } from '../types/salesType';
 import { getFromBaseApi, postToBaseApi, putToBaseApi } from '../utils/apiService';
+
+const requestTracker = new Map<string, boolean>();
+
+function getRequestKey(url: string, data: any) {
+    return `${url}:${JSON.stringify(data)}`;
+}
 
 export async function getCategories() {
     return await getFromBaseApi<CallResultDto<CategoryDto[]>>('getCategories');
@@ -21,44 +26,105 @@ export async function getCart() {
 }
 
 export async function addItemToCart(itemId: number, quantity: number) {
-    return await postToBaseApi<CallResultDto<object>>('addItemToCart', { itemId, quantity });
+    const key = getRequestKey('addItemToCart', { itemId, quantity });
+    if (requestTracker.get(key)) return;
+    requestTracker.set(key, true);
+
+    try {
+        return await postToBaseApi<CallResultDto<object>>('addItemToCart', { itemId, quantity });
+    } finally {
+        requestTracker.delete(key);
+    }
 }
 
 export async function deleteAllCartItems() {
-    return await putToBaseApi<CallResultDto<object>>('deleteAllCartItems');
+    const key = getRequestKey('deleteAllCartItems', {});
+    if (requestTracker.get(key)) return;
+    requestTracker.set(key, true);
+
+    try {
+        return await putToBaseApi<CallResultDto<object>>('deleteAllCartItems');
+    } finally {
+        requestTracker.delete(key);
+    }
 }
 
 export async function removeCartItem(cartItemId: number) {
-    return await putToBaseApi<CallResultDto<object>>('removeCartItem', { cartItemId });
+    const key = getRequestKey('removeCartItem', { cartItemId });
+    if (requestTracker.get(key)) return;
+    requestTracker.set(key, true);
+
+    try {
+        return await putToBaseApi<CallResultDto<object>>('removeCartItem', { cartItemId });
+    } finally {
+        requestTracker.delete(key);
+    }
 }
 
 export async function updateItemQuantity(cartItemId: number, quantity: number) {
-    return await putToBaseApi<CallResultDto<object>>('updateItemQuantity', { cartItemId, quantity });
+    const key = getRequestKey('updateItemQuantity', { cartItemId, quantity });
+    if (requestTracker.get(key)) return;
+    requestTracker.set(key, true);
+
+    try {
+        return await putToBaseApi<CallResultDto<object>>('updateItemQuantity', { cartItemId, quantity });
+    } finally {
+        requestTracker.delete(key);
+    }
 }
 
 export async function updateDeliveryFee(deliveryFee: number | null) {
-    return await putToBaseApi<CallResultDto<object>>('updateDeliveryFee', { deliveryFee });
+    const key = getRequestKey('updateDeliveryFee', { deliveryFee });
+    if (requestTracker.get(key)) return;
+    requestTracker.set(key, true);
+
+    try {
+        return await putToBaseApi<CallResultDto<object>>('updateDeliveryFee', { deliveryFee });
+    } finally {
+        requestTracker.delete(key);
+    }
 }
 
 export async function updateDiscount(discount: number | null) {
-    return await putToBaseApi<CallResultDto<object>>('updateDiscount', { discount });
+    const key = getRequestKey('updateDiscount', { discount });
+    if (requestTracker.get(key)) return;
+    requestTracker.set(key, true);
+
+    try {
+        return await putToBaseApi<CallResultDto<object>>('updateDiscount', { discount });
+    } finally {
+        requestTracker.delete(key);
+    }
 }
 
 export async function processPayment(amountReceived: number) {
-    return await postToBaseApi<CallResultDto<TransactionRequestDto>>('processPayment', { amountReceived });
+    const key = getRequestKey('processPayment', { amountReceived });
+    if (requestTracker.get(key)) return;
+    requestTracker.set(key, true);
+
+    try {
+        return await postToBaseApi<CallResultDto<TransactionRequestDto>>('processPayment', { amountReceived });
+    } finally {
+        requestTracker.delete(key);
+    }
 }
 
 export async function updateCustomer(id: number | null) {
-    return await putToBaseApi<CallResultDto<object>>('updateCustomer', { id });
+    const key = getRequestKey('updateCustomer', { id });
+    if (requestTracker.get(key)) return;
+    requestTracker.set(key, true);
+
+    try {
+        return await putToBaseApi<CallResultDto<object>>('updateCustomer', { id });
+    } finally {
+        requestTracker.delete(key);
+    }
 }
 
 export async function generateReceipt(transactionId: number, transaction: TransactionDto) {
     try {
-        if (Platform.OS === 'android') {
-            const granted = await PermissionsAndroid.request(
-                PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
-            );
-        }
+        await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE);
+
 
         const config = { responseType: 'blob' as ResponseType };
         const blob = await postToBaseApi<Blob>('generateReceipt', { transactionId }, config);
@@ -67,10 +133,8 @@ export async function generateReceipt(transactionId: number, transaction: Transa
         reader.readAsDataURL(blob);
         reader.onloadend = async () => {
             const base64Data = reader.result?.toString().split(',')[1];
-
             if (base64Data) {
                 const filePath = `${RNFS.DownloadDirectoryPath}/${transaction.slipNo}_receipt.pdf`;
-
                 await RNFS.writeFile(filePath, base64Data, 'base64');
                 await RNFS.scanFile(filePath);
 
@@ -97,15 +161,39 @@ export async function getAllTransactionHistoryHQ(branchId: number | null, page: 
 }
 
 export async function voidTransaction(id: number) {
-    return await putToBaseApi<CallResultDto<object>>('voidTransaction', { id });
+    const key = getRequestKey('voidTransaction', { id });
+    if (requestTracker.get(key)) return;
+    requestTracker.set(key, true);
+
+    try {
+        return await putToBaseApi<CallResultDto<object>>('voidTransaction', { id });
+    } finally {
+        requestTracker.delete(key);
+    }
 }
 
 export async function saveCustomerItemReward(id: number, itemId: number, branchId: number, qty: number) {
-    return await putToBaseApi<CallResultDto<object>>('saveCustomerItemReward', { id, itemId, branchId, qty });
+    const key = getRequestKey('saveCustomerItemReward', { id, itemId, branchId, qty });
+    if (requestTracker.get(key)) return;
+    requestTracker.set(key, true);
+
+    try {
+        return await putToBaseApi<CallResultDto<object>>('saveCustomerItemReward', { id, itemId, branchId, qty });
+    } finally {
+        requestTracker.delete(key);
+    }
 }
 
 export async function changeReward(id: number, itemId: number, branchId: number, lastItemId: number, qty: number, lastQty: number) {
-    return await putToBaseApi<CallResultDto<object>>('changeReward', { id, itemId, branchId, lastItemId, qty, lastQty });
+    const key = getRequestKey('changeReward', { id, itemId, branchId, lastItemId, qty, lastQty });
+    if (requestTracker.get(key)) return;
+    requestTracker.set(key, true);
+
+    try {
+        return await putToBaseApi<CallResultDto<object>>('changeReward', { id, itemId, branchId, lastItemId, qty, lastQty });
+    } finally {
+        requestTracker.delete(key);
+    }
 }
 
 export async function getOldestTransaction(branchId: number) {
@@ -114,35 +202,38 @@ export async function getOldestTransaction(branchId: number) {
 
 export async function generateSalesPDF(from: Date, to: Date, branchId: number) {
     try {
-        if (Platform.OS === 'android') {
-            const granted = await PermissionsAndroid.request(
-                PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
-            );
-        }
+        await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE);
+
         const formatDate = (date: Date) => {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
         };
-        const fromDate = formatDate(from)
-        const toDate = formatDate(to)
+
+        const fromDate = formatDate(from);
+        const toDate = formatDate(to);
         const config = { responseType: 'blob' as ResponseType };
         const blob = await postToBaseApi<Blob>('generateSalespdf', { fromDate, toDate, branchId }, config);
         const reader = new FileReader();
         reader.readAsDataURL(blob);
+
         reader.onloadend = async () => {
             const base64Data = reader.result?.toString().split(',')[1];
             if (base64Data) {
-
-                const filePath = `${RNFS.DownloadDirectoryPath}/test_sales.pdf`;
-
-                await RNFS.writeFile(filePath, base64Data, 'base64');
-                await RNFS.scanFile(filePath);
-
+                const timestamp = Date.now();
+                const randomNum = Math.floor(Math.random() * 1_000_000);
+                const filePath = `${RNFS.DownloadDirectoryPath}/test_sales_${timestamp}_${randomNum}.pdf`;
+                console.log(filePath);
                 try {
 
+                    await RNFS.writeFile(filePath, base64Data, 'base64');
+                    console.log('scanned')
+
+                    await RNFS.scanFile(filePath);
+
                     await FileViewer.open(filePath, { showOpenWithDialog: true });
+                    console.log('opened')
                 } catch (error) {
                     console.error("Error opening file:", error);
                     Alert.alert("Failed to open the pdf file. Please ensure you have a PDF viewer installed.");

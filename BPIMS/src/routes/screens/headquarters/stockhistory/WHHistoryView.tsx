@@ -107,7 +107,7 @@ const WHHistoryScreen = React.memo(({ route }: Props) => {
         <View style={{ flex: 1 }}>
             {user && <Sidebar isVisible={isSidebarVisible} toggleSidebar={toggleSidebar} userDetails={user} />}
 
-            <TitleHeaderComponent isParent={false} userName={user?.name || ""} title={itemName} onPress={() => navigation.push('ItemsList')}></TitleHeaderComponent>
+            <TitleHeaderComponent isParent={false} userName={user?.name || ""} title={itemName} onPress={() => navigation.goBack()}></TitleHeaderComponent>
 
             <View className="w-full justify-center items-center bg-gray relative">
                 <View className="w-full flex-row justify-between items-center">

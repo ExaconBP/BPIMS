@@ -31,8 +31,8 @@ async def getBranchTransferHistory(branchItemId):
     sqlQuery = """
            SELECT bh.id, bh.quantity, bh.date, bh.branchFromId, bh.branchToId, br1.Name as branchFrom, br2.Name as branchTo
            FROM branchtransferhistory bh
-           INNER JOIN branchItem b1 on b1.Id = bh.branchFromId
-           INNER JOIN branchItem b2 on b2.Id = bh.branchToId
+           INNER JOIN branchitem b1 on b1.Id = bh.branchFromId
+           INNER JOIN branchitem b2 on b2.Id = bh.branchToId
            INNER JOIN branches br1 on br1.Id = b1.branchId
            INNER JOIN branches br2 on br2.Id = b2.branchId
            WHERE bh.branchFromId = %s OR bh.branchToId = %s

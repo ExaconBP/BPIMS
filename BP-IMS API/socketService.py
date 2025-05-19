@@ -9,7 +9,7 @@ async def criticalItems(websocket, branchId):
             SELECT COUNT(*) as critical_count
             FROM branchitem bi
             INNER JOIN items i ON i.id = bi.itemid
-            WHERE i.storeCriticalValue > bi.quantity
+            WHERE i.storeCriticalValue >= bi.quantity
             AND bi.branchId = {branchId} AND i.isManaged = 1
         """
         connection = Tortoise.get_connection('default')
@@ -128,7 +128,7 @@ async def totalSales(websocket, branchId):
             SELECT SUM(totalAmount) AS totalSales
             FROM transactions
             WHERE YEAR(transactionDate) = {singapore_year}
-            AND branchId = {branchId} AND isVoided = 0 and tr.isPaid = 1
+            AND branchId = {branchId} AND isVoided = 0 and isPaid = 1
         """
         totalSalesPerYear = await connection.execute_query_dict(totalSalesYearQuery)
 
@@ -136,7 +136,7 @@ async def totalSales(websocket, branchId):
             SELECT SUM(totalAmount) AS totalSales
             FROM transactions
             WHERE YEAR(transactionDate) = {singapore_year} AND MONTH(transactionDate) = {singapore_month}
-            AND branchId = {branchId} AND isVoided = 0 and tr.isPaid = 1
+            AND branchId = {branchId} AND isVoided = 0 and isPaid = 1
         """
         totalSalesPerMonth = await connection.execute_query_dict(totalSalesMonthQuery)
 
@@ -186,7 +186,7 @@ async def dailyTransactionHQ(websocket):
             JOIN items i ON ti.itemId = i.id
             JOIN transactions tr ON ti.transactionId = tr.id
             JOIN branches b ON tr.branchId = b.id
-            WHERE DATE(tr.transactionDate) = '{singapore_date}' AND tr.isVoided = 0
+            WHERE tr.isVoided = 0
             AND b.isActive = 1 and tr.isPaid = 1
             GROUP BY b.id, i.id
         )
@@ -270,7 +270,7 @@ async def criticalItemsBranches(websocket):
             FROM branchitem bi
             INNER JOIN items i ON i.id = bi.itemid
             INNER JOIN branches b on b.id = bi.branchId
-            WHERE i.storeCriticalValue > bi.quantity AND b.isActive = 1
+            WHERE i.storeCriticalValue >= bi.quantity AND b.isActive = 1
             AND i.isManaged = 1
         """
         connection = Tortoise.get_connection('default')
@@ -289,19 +289,19 @@ async def criticalItemsHQ(websocket):
             FROM branchitem bi
             INNER JOIN items i ON i.id = bi.itemid
             INNER JOIN branches b on b.id = bi.branchId
-            WHERE i.storeCriticalValue > bi.quantity AND b.isActive = 1
+            WHERE i.storeCriticalValue >= bi.quantity AND b.isActive = 1
             AND i.isManaged = 1
         """
         connection = Tortoise.get_connection('default')
         result = await connection.execute_query_dict(count_query)
-
+ 
         bi_critical_count = result[0]['critical_count']
 
         wi_count_query = f"""
             SELECT COUNT(*) as critical_count
             FROM warehouseitems bi
             INNER JOIN items i ON i.id = bi.itemid
-            WHERE i.whCriticalValue > bi.quantity
+            WHERE i.whCriticalValue >= bi.quantity
             AND i.isManaged = 1
         """
         connection = Tortoise.get_connection('default')
@@ -319,7 +319,7 @@ async def criticalItemsWH(websocket):
             SELECT COUNT(*) as critical_count
             FROM warehouseitems bi
             INNER JOIN items i ON i.id = bi.itemid
-            WHERE i.whCriticalValue > bi.quantity
+            WHERE i.whCriticalValue >= bi.quantity
             AND i.isManaged = 1
         """
         connection = Tortoise.get_connection('default')
@@ -989,6 +989,7 @@ async def analyticsGrossSalesDataHQ(websocket, from_date_str, to_date_str, branc
         query = f"""
                 SELECT 
                     COALESCE(SUM(tr.totalAmount), 0) AS gross_sales,
+                    COALESCE(SUM(tr.deliveryFee), 0) AS deliveryFee,
                     COALESCE(SUM(tr.discount), 0) AS total_discount,
                     COALESCE(SUM(tr.totalAmount), 0) - COALESCE(SUM(tr.discount), 0) AS net_sales,
                     COALESCE(SUM(costs.item_cost), 0) AS item_cost,
@@ -1014,6 +1015,7 @@ async def analyticsGrossSalesDataHQ(websocket, from_date_str, to_date_str, branc
 
         response = {
             "grossSales": float(summary.get("gross_sales", 0)),
+            "deliveryFee": float(summary.get("deliveryFee", 0)),
             "totalDiscount": float(summary.get("total_discount", 0)),
             "netSales": float(summary.get("net_sales", 0)),
             "itemCost": float(summary.get("item_cost", 0)),

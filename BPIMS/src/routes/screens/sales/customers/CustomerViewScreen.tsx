@@ -12,11 +12,9 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import FastImage from 'react-native-fast-image';
-import { Camera } from 'react-native-feather';
-import RNFS from 'react-native-fs';
 import { CameraOptions, ImageLibraryOptions, launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
 import Hexagon from '../../../../components/Hexagon';
+import ItemImage from '../../../../components/ItemImage';
 import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
 import { CustomerStackParamList } from '../../../navigation/navigation';
 import { deleteCustomer, getCurrentLoyaltyCustomer, getCustomer, getCustomerImage, saveCustomer } from '../../../services/customerRepo';
@@ -73,18 +71,14 @@ const CustomerViewScreen = React.memo(({ route }: Props) => {
     const fetchCustomer = useCallback(async () => {
         try {
             setLoading(true);
-            FastImage.clearMemoryCache();
-            FastImage.clearDiskCache();
+
             if (customerId != 0 && customerId != null) {
                 const response = await getCustomer(customerId);
                 const responeLoyalty = await getCurrentLoyaltyCustomer(customerId)
                 if (response) {
                     setCustomer(response.data.customer);
                     setOrderHistory(response.data.orderHistory ?? []);
-                    let image = ""
-                    if (response.data.customer.fileName)
-                        image = await getCustomerImage(response.data.customer.fileName)
-                    setFileUrl(image)
+                    setFileUrl(response.data.customer.fileName)
                 }
                 if (responeLoyalty) {
                     setLoyaltyStages(responeLoyalty.data ?? [])
@@ -259,7 +253,7 @@ const CustomerViewScreen = React.memo(({ route }: Props) => {
                             try {
                                 setLoading(true);
                                 const response = await deleteCustomer(id);
-                                if (response.isSuccess) {
+                                if (response && response.isSuccess) {
                                     navigation.push('Customer');
                                 }
                             }
@@ -334,7 +328,7 @@ const CustomerViewScreen = React.memo(({ route }: Props) => {
     return (
         <View className="flex flex-1">
 
-            <TitleHeaderComponent showTrash={customer && customer.id != 0} onTrashPress={() => customer && removeCustomer(customer?.id)} isParent={false} userName={user.name} title={customer && customer.id != 0 ? customer.name : "New Customer"} onPress={() => navigation.navigate("Customer")}></TitleHeaderComponent>
+            <TitleHeaderComponent showTrash={customer && customer.id != 0} onTrashPress={() => customer && removeCustomer(customer?.id)} isParent={false} userName={user.name} title={customer && customer.id != 0 ? customer.name : "New Customer"} onPress={() => navigation.goBack()}></TitleHeaderComponent>
 
             {customer && customer.id !== 0 && (
 
@@ -377,14 +371,8 @@ const CustomerViewScreen = React.memo(({ route }: Props) => {
                                     />
                                 </View>
                                 <TouchableOpacity onPress={handleImageSelect}>
-                                    {fileUrl ? (
-                                        <FastImage source={{ uri: fileUrl }} className="w-24 h-24 rounded-lg" />
-                                    ) : (
-                                        <View className="w-24 h-24 bg-gray-500 rounded-lg justify-center items-center">
-                                            <Camera color="white" height={32} width={32} />
-                                            <Text className="text-white text-xs mt-1">Add Photo</Text>
-                                        </View>
-                                    )}
+                                    <ItemImage imagePath={fileUrl} />
+
                                 </TouchableOpacity>
                             </View>
 

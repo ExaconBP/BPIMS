@@ -2,15 +2,13 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import React from 'react';
 import { Text, View } from 'react-native';
-import FastImage from 'react-native-fast-image';
-import { Camera } from 'react-native-feather';
 import ExpandableText from '../../../../components/ExpandableText';
+import ItemImage from '../../../../components/ItemImage';
 import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
 import { BranchStockParamList } from '../../../navigation/navigation';
 import { BranchStockDto, StockInputHistoryDto } from '../../../types/stockType';
 import { UserDetails } from '../../../types/userType';
 import { formatTransactionDateOnly } from '../../../utils/dateFormat';
-import { getItemImage } from '../../../services/itemsHQRepo';
 
 type Props = NativeStackScreenProps<BranchStockParamList, 'StockHistory'>;
 
@@ -19,8 +17,7 @@ export default function StockHistory({ route }: Props) {
     const user: UserDetails = route.params.user;
     const history: StockInputHistoryDto = route.params.history
     const navigation = useNavigation<NativeStackNavigationProp<BranchStockParamList>>();
-    FastImage.clearMemoryCache();
-    FastImage.clearDiskCache();
+  
     return (
         <View className="flex flex-1">
             <View className="flex flex-1">
@@ -30,15 +27,8 @@ export default function StockHistory({ route }: Props) {
                     <View className="w-full flex items-center">
                         <ExpandableText text={item.name}></ExpandableText>
                         <View className="w-full flex items-center mt-2 mb-2">
-                            {item.imagePath ? (
-                                <FastImage source={{
-                                    uri: getItemImage(item.imagePath), priority: FastImage.priority.high,
-                                }} className="w-24 h-24 rounded-lg" />) : (
-                                <View className="w-full h-24 bg-gray-500 rounded-lg justify-center items-center">
-                                    <Camera color={"white"} height={32} width={32} />
-                                    <Text className='text-white text-xs mt-1'>No Image</Text>
-                                </View>
-                            )}
+                            <ItemImage imagePath={item.imagePath} />
+
                         </View>
                     </View>
 

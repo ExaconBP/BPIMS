@@ -20,6 +20,7 @@ import {
     formatTransactionDateOnly,
     truncateShortName
 } from '../../../utils/dateFormat';
+import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
 
 type Props = NativeStackScreenProps<HistoryStackParamList, 'HistoryView'>;
 
@@ -106,23 +107,7 @@ const HistoryScreen = React.memo(({ route }: Props) => {
     return (
         <View style={{ flex: 1 }}>
             {user && <Sidebar isVisible={isSidebarVisible} toggleSidebar={toggleSidebar} userDetails={user} />}
-            <View className="top-3 flex bg-gray flex-row justify-between px-2">
-                <TouchableOpacity className="bg-gray px-1 pb-2 ml-2" onPress={() => navigation.push('ItemsList')}>
-                    <ChevronLeft height={28} width={28} color={"#fe6500"} />
-                </TouchableOpacity>
-
-                <Text className={`text-black font-bold text-center mt-1 ${itemName.length > 15 ? 'text-xs' : 'text-sm'}`}>
-                    {itemName}
-                </Text>
-
-                <View className="items-center mr-2">
-                    <View className="px-2 py-1 bg-[#fe6500] rounded-lg">
-                        <Text className="text-white text-xs">
-                            {truncateShortName(user?.name ? user.name.split(" ")[0].toUpperCase() : "")}
-                        </Text>
-                    </View>
-                </View>
-            </View>
+            <TitleHeaderComponent isParent={false} title={itemName} onPress={() => navigation.goBack()} userName={user.name}></TitleHeaderComponent>
 
             <View className="w-full justify-center items-center bg-gray relative mt-4">
                 <View className="w-full flex-row justify-between px-2">

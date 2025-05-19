@@ -142,14 +142,9 @@ async def saveCustomer(data, file):
 
 async def deleteCustomer(id):
     customer = await Customer.get_or_none(id=id)
-    
+
     if not customer:
         return create_response(False, "Customer not found.", None, None), 200
-
-    if customer.fileName:
-        response = delete_media(customer.imageId)
-        if(response == False):
-            return create_response(False, "An error occured.", None, None), 200
         
     carts = await Cart.filter(customerId=id)
 
@@ -168,7 +163,6 @@ async def deleteCustomer(id):
         await cust.delete()
 
     await customer.delete()
-
     return create_response(True, "Customer deleted successfully.", None, None), 200
 
 async def saveItemsReward(id, name):
@@ -211,9 +205,10 @@ async def saveLoyaltyCard(card):
         message = "Card updated successfully."
 
     if(card['isValid'] == True):
-        cards = await LoyaltyCard.filter(id!=cardId)
+        cards = await LoyaltyCard.filter(id__not=cardId)
         for card in cards:
             card.isValid = False
+            await card.save()
        
     return create_response(True, message, None, None), 200
 
@@ -316,7 +311,7 @@ async def markNextStageDone(customerId):
     return False
 
 async def getLoyaltyCardList():
-    card_query = LoyaltyCard.all().order_by('isValid', 'id')
+    card_query = LoyaltyCard.filter(isActive=True).order_by('-isValid', 'id')
 
     cards = await card_query.values("id", "validYear", "isValid")
 
@@ -326,8 +321,8 @@ async def getLoyaltyStages(cardId):
 
     sqlQuery = """
         SELECT ls.id, ls.orderId, ls.loyaltyCardId, ls.itemRewardId, ir.name as rewardName from loyaltystages ls 
-        LEFT JOIN itemRewards ir on ir.Id = ls.itemRewardId
-        WHERE ls.loyaltyCardId = %s
+        LEFT JOIN itemrewards ir on ir.Id = ls.itemRewardId
+        WHERE ls.loyaltyCardId = %s and ls.isActive = 1
         ORDER BY ls.orderId
         """
     params = [cardId]
@@ -351,10 +346,9 @@ async def getLoyaltyStages(cardId):
     return create_response(True, "Success", stageList, None), 200
 
 async def getRewards():
-    reward_query = ItemReward.all().order_by('name')
+    reward_query = ItemReward.filter(isActive=True).all().order_by('name')
 
     rewards = await reward_query.values("id", "name")
-
     return create_response(True, "Rewards list retrieved successfully.", rewards, None), 200
 
 async def getCustomerLoyalty(customerId):
@@ -428,3 +422,33 @@ async def changeReward(id, itemId, branchId, lastItemId, qty, lastQty):
     await lastItem.save()
 
     return create_response(True, "Picked Item Successfully", None, None), 200
+
+async def deleteReward(id):
+    reward = await ItemReward.get_or_none(id=id)
+
+    if not reward:
+        return create_response(False, "Reward not found.", None, None), 200
+
+    reward.isActive = False
+    await reward.save()
+    return create_response(True, "Reward deleted successfully.", None, None), 200
+
+async def deleteLoyaltyStage(id):
+    stage = await LoyaltyStages.get_or_none(id=id)
+
+    if not stage:
+        return create_response(False, "Stage not found.", None, None), 200
+
+    stage.isActive = False
+    await stage.save()
+    return create_response(True, "Stage deleted successfully.", None, None), 200
+
+async def deleteLoyaltyCard(id):
+    card = await LoyaltyCard.get_or_none(id=id)
+
+    if not card:
+        return create_response(False, "Card not found.", None, None), 200
+
+    card.isActive = False
+    await card.save()
+    return create_response(True, "Card deleted successfully.", None, None), 200

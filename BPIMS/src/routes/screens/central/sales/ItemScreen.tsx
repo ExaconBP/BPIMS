@@ -2,10 +2,9 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { debounce } from 'lodash';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, BackHandler, Dimensions, Keyboard, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, BackHandler, Dimensions, FlatList, Keyboard, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { ChevronRight, Menu, Search } from "react-native-feather";
-import { OptimizedFlatList } from 'react-native-optimized-flatlist';
 import CentralSidebar from '../../../../components/CentralSidebar';
 import ExpandableText from '../../../../components/ExpandableText';
 import NumericKeypad from '../../../../components/NumericKeypad';
@@ -73,6 +72,8 @@ const ItemScreen = () => {
                 } else {
                     Alert.alert('An error occurred', response.message);
                 }
+                const userResponse = await getUserDetails();
+                setUser(userResponse)
                 setLoadingCategory(false);
             }
             finally {
@@ -97,8 +98,6 @@ const ItemScreen = () => {
             }
             if (!loadingMore)
                 setLoading(true);
-            const userResponse = await getUserDetails();
-            setUser(userResponse)
             const response = await getCentralProducts(categoryId, page, search.trim());
             if (response.isSuccess) {
                 FastImage.clearMemoryCache();
@@ -118,7 +117,7 @@ const ItemScreen = () => {
                     return product;
                 });
                 setProducts(prevProducts => page === 1 ? newProducts : [...prevProducts, ...newProducts]);
-                if (newProducts.length === 0 || products.length + newProducts.length >= (response.totalCount || 0)) {
+                if (newProducts.length < 30 || (response.totalCount && (page * 30) >= response.totalCount)) {
                     setHasMoreData(false);
                 } else {
                     setHasMoreData(true);
@@ -477,6 +476,8 @@ const ItemScreen = () => {
                                 setLoading(true)
                                 setSearch(text);
                                 setPage(1);
+                                setHasMoreData(false);
+                                setProducts([]);
                             }}
                             onFocus={() => Keyboard.isVisible()}
                             selectionColor="orange"
@@ -523,7 +524,7 @@ const ItemScreen = () => {
                             <Text className="text-center text-[#fe6500]">Getting Items...</Text>
                         </View>
                     ) : (
-                        <OptimizedFlatList
+                        <FlatList
                             data={products}
                             onLayout={(event: any) => setListHeight(event.nativeEvent.layout.height)}
                             renderItem={renderItem}
@@ -533,7 +534,7 @@ const ItemScreen = () => {
                             onEndReached={loadMoreCategories}
                             onEndReachedThreshold={0.5}
                             showsVerticalScrollIndicator={false}
-                            ListFooterComponent={loadingMore && <ActivityIndicator size="small" color="#fe6500" />}
+                            ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color="#fe6500" /> : null}
                         />
                     )
                     }

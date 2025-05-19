@@ -154,7 +154,7 @@ const BranchViewScreen = React.memo(({ route }: Props) => {
 
     return (
         <View className="flex flex-1 px-4">
-            <TitleHeaderComponent showTrash={branch && branch.id != 0} onTrashPress={() => branchInactive()} isParent={false} userName={user.name || ""} title={branch?.id !== 0 ? (name) : 'New Branch'} onPress={() => navigation.navigate('Branches')}></TitleHeaderComponent>
+            <TitleHeaderComponent showTrash={branch && branch.id != 0} onTrashPress={() => branchInactive()} isParent={false} userName={user.name || ""} title={branch?.id !== 0 ? (name) : 'New Branch'} onPress={() => navigation.goBack()}></TitleHeaderComponent>
 
             <View className="w-full bg-gray-200 h-[2px] w-full mb-4"></View>
 

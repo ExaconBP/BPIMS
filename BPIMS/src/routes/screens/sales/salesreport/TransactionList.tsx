@@ -125,7 +125,7 @@ const TransactionListScreen = React.memo(({ route }: Props) => {
 
     return (
         <View className='flex flex-1'>
-            <TitleHeaderComponent isParent={false} userName={user?.name || ''} title={'transactions'} onPress={() => navigation.push('SalesReport')}></TitleHeaderComponent>
+            <TitleHeaderComponent isParent={false} userName={user?.name || ''} title={'transactions'} onPress={() => navigation.goBack()}></TitleHeaderComponent>
 
             <View className="justify-center items-center bg-gray relative mb-6 pb-8">
                 <View className="flex flex-row w-full bg-gray-300 py-1 px-3 items-center">

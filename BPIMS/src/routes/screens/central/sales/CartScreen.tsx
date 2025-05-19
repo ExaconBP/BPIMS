@@ -221,7 +221,7 @@ const CartScreen = React.memo(({ route }: Props) => {
                         <Text className="text-lg font-bold text-gray-600 px-3 mt-4">
                             Enter Quantity Sold
                         </Text>
-                        <View className="flex flex-row items-center mt-6 w-48 border-b-2 border-[#fe6500] px-4 justify-center">
+                        <View className="flex flex-row items-center mt-6  border-b-2 border-[#fe6500] px-4 justify-center">
                             <Text className="text-center text-3xl text-[#fe6500] tracking-widest">
                                 {selectedItem?.sellByUnit ? quantity : doubleQuantity}
                             </Text>
@@ -266,6 +266,8 @@ const CartScreen = React.memo(({ route }: Props) => {
                                 SAVE
                             </Text>
                         </View>
+                        {buttonLoading && <ActivityIndicator color="white" size="small" />}
+
                     </TouchableOpacity>
                 </View>
             </View>
@@ -303,7 +305,7 @@ const CartScreen = React.memo(({ route }: Props) => {
 
                                                 <View className="flex-column items-start justify-between w-[60%]">
 
-                                                    <ExpandableText text={cartItem.name}></ExpandableText>
+                                                    <ExpandableText text={`${cartItem.branchName} - ${cartItem.name}`} />
                                                     <Text className="text-xs text-gray-600">₱ {cartItem.price}</Text>
                                                 </View>
                                                 <View className="w-[25%]">

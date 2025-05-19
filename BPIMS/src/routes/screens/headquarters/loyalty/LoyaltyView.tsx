@@ -5,7 +5,7 @@ import { ActivityIndicator, Keyboard, ScrollView, Switch, Text, TextInput, Touch
 import { PlusCircle } from 'react-native-feather';
 import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
 import { LoyaltyParamsList } from '../../../navigation/navigation';
-import { getLoyaltyStages, getRewards, saveLoyaltyCard } from '../../../services/customerRepo';
+import { deleteLoyaltyCard, getLoyaltyStages, getRewards, saveLoyaltyCard } from '../../../services/customerRepo';
 import { LoyaltyCardDto, LoyaltyStageDto } from '../../../types/customerType';
 import { ObjectDto } from '../../../types/userType';
 
@@ -86,11 +86,24 @@ const LoyaltyViewScreen = memo(({ route }: Props) => {
         setIsValid(!!isFormValid);
     }, [loyaltyCard]);
 
-    const saveStockInput = useCallback(async () => {
+    const save = useCallback(async () => {
         try {
             setLoading(true);
             if (loyaltyCard) {
                 await saveLoyaltyCard(loyaltyCard);
+            }
+            initializeCard();
+            navigation.push('LoyaltyScreen')
+        } finally {
+            setLoading(false);
+        }
+    }, [loyaltyCard, initializeCard]);
+
+    const deleteCard = useCallback(async () => {
+        try {
+            setLoading(true);
+            if (loyaltyCard) {
+                await deleteLoyaltyCard(loyaltyCard.id);
             }
             initializeCard();
             navigation.push('LoyaltyScreen')
@@ -156,7 +169,7 @@ const LoyaltyViewScreen = memo(({ route }: Props) => {
 
     const renderNormalMode = useMemo(() => (
         <View className="flex flex-1">
-            <TitleHeaderComponent isParent={false} userName={user?.name || ""} title="Loyalty Card" onPress={() => navigation.navigate('LoyaltyScreen')}></TitleHeaderComponent>
+            <TitleHeaderComponent showTrash={true} onTrashPress={deleteCard} isParent={false} userName={user?.name || ""} title="Loyalty Card" onPress={() => navigation.goBack()}></TitleHeaderComponent>
             <View className="px-4 w-full">
                 {loyaltyCard && (
                     <View className='w-full'>
@@ -222,7 +235,7 @@ const LoyaltyViewScreen = memo(({ route }: Props) => {
             {!keyboardVisible && (
                 <View className='items-center absolute bottom-0 left-0 right-0 pb-2'>
                     <TouchableOpacity
-                        onPress={saveStockInput}
+                        onPress={save}
                         className={`w-[95%] rounded-xl p-3 flex flex-row items-center ${!isValid ? 'bg-gray border-2 border-[#fe6500]' : 'bg-[#fe6500]'}`}
                         disabled={!isValid}
                     >
@@ -236,7 +249,7 @@ const LoyaltyViewScreen = memo(({ route }: Props) => {
                 </View>
             )}
         </View>
-    ), [handleChange, keyboardVisible, loading, navigation, saveStockInput, loyaltyCard, stages, user?.name, isValid]);
+    ), [handleChange, keyboardVisible, loading, navigation, save, loyaltyCard, stages, user?.name, isValid]);
 
     return (
         <View className="flex flex-1">

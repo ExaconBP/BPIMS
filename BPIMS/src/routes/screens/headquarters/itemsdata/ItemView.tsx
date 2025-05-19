@@ -14,10 +14,8 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import FastImage from 'react-native-fast-image';
-import { Camera } from "react-native-feather";
-import RNFS from 'react-native-fs';
 import { CameraOptions, ImageLibraryOptions, launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
+import ItemImage from '../../../../components/ItemImage';
 import NumericKeypad from '../../../../components/NumericKeypad';
 import SelectModal from '../../../../components/SelectModal';
 import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
@@ -60,13 +58,10 @@ const ItemViewScreen = ({ route }: Props) => {
     const fetchItem = useCallback(async () => {
         try {
             setLoading(true);
-            FastImage.clearMemoryCache();
-            FastImage.clearDiskCache();
             if (item.id !== 0) {
                 setEditingItem(item);
                 if (item.imagePath) {
-                    const url = getItemImage(item.imagePath)
-                    setFileUrl(url)
+                    setFileUrl(item.imagePath)
                 }
             } else {
                 const newItem: ItemHQDto = {
@@ -223,7 +218,7 @@ const ItemViewScreen = ({ route }: Props) => {
                         onPress: async () => {
                             setLoading(true);
                             const response = await deleteItem(id);
-                            if (response.isSuccess) {
+                            if (response && response.isSuccess) {
                                 navigation.navigate('Items');
                             }
                         }
@@ -359,7 +354,7 @@ const ItemViewScreen = ({ route }: Props) => {
                                     <Text className="text-lg font-bold text-gray-600 px-3 mt-4">Enter {fieldLabels[editingField ?? 'qty']}
                                     </Text>
 
-                                    <View className="flex flex-row items-center mt-6 w-48 border-b-2 border-[#fe6500] px-4 justify-center">
+                                    <View className="flex flex-row items-center mt-6 border-b-2 border-[#fe6500] px-4 justify-center">
                                         <Text className="text-center text-3xl text-[#fe6500] tracking-widest">
                                             {fieldLabels[editingField] == 'Cost Price' || fieldLabels[editingField] == 'Selling Price'
                                                 ?
@@ -393,24 +388,15 @@ const ItemViewScreen = ({ route }: Props) => {
                                         removeItem(item.id);
                                     }
                                 }}
-                                title="Items Data" onPress={() => navigation.push('Items')}
+                                title="Items Data" onPress={() => navigation.goBack()}
                             ></TitleHeaderComponent>
 
                             <View className="px-4 w-full">
                                 <View className="w-full flex items-center">
                                     <Text className="text-black text-sm">{editingItem.name.toUpperCase()}</Text>
                                     <TouchableOpacity className='w-full mt-2 items-center' onPress={handleImageSelect}>
+                                        <ItemImage imagePath={fileUrl} />
 
-                                        {fileUrl ? (
-                                            <FastImage source={{
-                                                uri: fileUrl, priority: FastImage.priority.high,
-                                            }} className="w-24 h-24 rounded-lg" />
-                                        ) : (
-                                            <View className="w-full h-24 bg-gray-500 rounded-lg justify-center items-center">
-                                                <Camera color="white" height={32} width={32} />
-                                                <Text className="text-white text-xs mt-1">Add Photo</Text>
-                                            </View>
-                                        )}
                                     </TouchableOpacity>
 
                                 </View>

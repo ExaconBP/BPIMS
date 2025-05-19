@@ -144,11 +144,10 @@ const UserViewScreen = React.memo(({ route }: Props) => {
 
                 if (user.id === 0) {
                     await addUser(user);
-                    navigation.push('Users')
                 } else {
                     await editUser(user);
-                    navigation.push('Users')
                 }
+                navigation.push('Users')
                 setButtonLoading(false);
             }
         }
@@ -217,7 +216,7 @@ const UserViewScreen = React.memo(({ route }: Props) => {
 
     return (
         <View className="flex flex-1 px-4">
-            <TitleHeaderComponent isParent={false} showTrash={user && user.id != 0} onTrashPress={userInactive} userName={user?.name || ""} title={user?.id !== 0 ? (name) : 'New User'} onPress={() => navigation.navigate('Users')}></TitleHeaderComponent>
+            <TitleHeaderComponent isParent={false} showTrash={user && user.id != 0} onTrashPress={userInactive} userName={user?.name || ""} title={user?.id !== 0 ? (name) : 'New User'} onPress={() => navigation.goBack()}></TitleHeaderComponent>
 
             <View className="w-full bg-gray-200 h-[2px] w-full mb-4"></View>
 

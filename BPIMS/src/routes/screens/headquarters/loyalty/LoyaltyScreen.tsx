@@ -158,18 +158,9 @@ const LoyaltyMonitorScreen = React.memo(() => {
                 </View>
 
                 <View className="flex-1 px-2">
-                    <View className="justify-center items-center bg-gray relative mb-2">
-                        {loading && (
-                            <View className="py-2">
-                                <ActivityIndicator size="small" color="#fe6500" />
-                                <Text className="text-center text-[#fe6500]">Fetching items...</Text>
-                            </View>
-                        )}
-                    </View>
-
                     {activeCategory == 0 ? (
                         <View className="flex-1 mt-1">
-                            <View className="flex flex-row justify-between items-center mb-2">
+                            <View className="flex flex-row justify-between items-center mt-2">
                                 <Text className="text-gray-700 text-sm font-bold"></Text>
                                 <TouchableOpacity
                                     className="flex-row items-center"
@@ -178,6 +169,14 @@ const LoyaltyMonitorScreen = React.memo(() => {
                                     <Text className="text-[#fe6500] text-sm font-semibold mr-1">Setup New Loyalty Card</Text>
                                     <PlusCircle width={18} height={18} color="#fe6500" />
                                 </TouchableOpacity>
+                            </View>
+                            <View className="justify-center items-center bg-gray relative mb-2">
+                                {loading && (
+                                    <View className="py-2">
+                                        <ActivityIndicator size="small" color="#fe6500" />
+                                        <Text className="text-center text-[#fe6500]">Fetching items...</Text>
+                                    </View>
+                                )}
                             </View>
 
                             <FlatList
@@ -190,7 +189,7 @@ const LoyaltyMonitorScreen = React.memo(() => {
                     ) :
                         (
                             <View className="flex-1 mt-1">
-                                <View className="flex flex-row justify-between items-center mb-2">
+                                <View className="flex flex-row justify-between items-center mt-2">
                                     <Text className="text-gray-700 text-sm font-bold"></Text>
                                     <TouchableOpacity
                                         className="flex-row items-center"
@@ -199,6 +198,15 @@ const LoyaltyMonitorScreen = React.memo(() => {
                                         <Text className="text-[#fe6500] text-sm font-semibold mr-1">Add Reward</Text>
                                         <PlusCircle width={18} height={18} color="#fe6500" />
                                     </TouchableOpacity>
+                                </View>
+
+                                <View className="justify-center items-center bg-gray relative mb-2">
+                                    {loading && (
+                                        <View className="py-2">
+                                            <ActivityIndicator size="small" color="#fe6500" />
+                                            <Text className="text-center text-[#fe6500]">Fetching items...</Text>
+                                        </View>
+                                    )}
                                 </View>
 
                                 <FlatList

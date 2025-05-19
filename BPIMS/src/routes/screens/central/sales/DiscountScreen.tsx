@@ -103,7 +103,7 @@ const DiscountScreen = React.memo(({ route }: Props) => {
                         >
                             <Text className="text-lg font-bold text-gray-600 px-3 mt-4">Cash Discount</Text>
                             <View
-                                className={`flex flex-row items-center mt-6 w-48 border-b-2 ${activeDiscount === 'cash' ? 'border-[#fe6500]' : 'border-gray-500'
+                                className={`flex flex-row items-center mt-6 border-b-2 ${activeDiscount === 'cash' ? 'border-[#fe6500]' : 'border-gray-500'
                                     } px-4 justify-center`}
                             >
                                 <Text className="text-center text-3xl text-[#fe6500] tracking-widest">
@@ -120,7 +120,7 @@ const DiscountScreen = React.memo(({ route }: Props) => {
                         >
                             <Text className="text-lg font-bold text-gray-600 px-3 mt-2">Percentage Discount</Text>
                             <View
-                                className={`flex flex-row items-center mt-6 w-48 border-b-2 ${activeDiscount === 'percentage' ? 'border-[#fe6500]' : 'border-gray-500'
+                                className={`flex flex-row items-center mt-6 border-b-2 ${activeDiscount === 'percentage' ? 'border-[#fe6500]' : 'border-gray-500'
                                     } px-4 justify-center`}
                             >
                                 <Text className="text-center text-3xl text-[#fe6500] tracking-widest">
