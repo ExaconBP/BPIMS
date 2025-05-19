@@ -2,21 +2,20 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { debounce } from 'lodash';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, BackHandler, Dimensions, Easing, Keyboard, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, BackHandler, Dimensions, Easing, FlatList, Keyboard, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { ChevronRight, Menu, Search, Slash } from "react-native-feather";
-import { OptimizedFlatList } from 'react-native-optimized-flatlist';
 import ExpandableText from '../../../../components/ExpandableText';
 import NumericKeypad from '../../../../components/NumericKeypad';
 import Sidebar from '../../../../components/Sidebar';
 import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
 import { ItemStackParamList } from '../../../navigation/navigation';
+import { getItemImage } from '../../../services/itemsHQRepo';
 import { addItemToCart, getCart, getCategories, getProducts } from '../../../services/salesRepo';
 import { CartItems, CategoryDto, ItemDto } from '../../../types/salesType';
 import { UserDetails } from '../../../types/userType';
 import { getUserDetails } from '../../../utils/auth';
 import { truncateShortName } from '../../../utils/dateFormat';
-import { getItemImage } from '../../../services/itemsHQRepo';
 
 const ItemScreen = () => {
     const [categories, setCategories] = useState<CategoryDto[]>([]);
@@ -40,6 +39,7 @@ const ItemScreen = () => {
     const [message, setMessage] = useState<string | null>(null);
     const [cartItems, setCartItems] = useState<CartItems[]>([]);
     const [pendingItems, setPendingItems] = useState<Set<number>>(new Set());
+    const [numberItems, setNumberItems] = useState<number>(1);
 
     const cartScale = useRef(new Animated.Value(1)).current;
 
@@ -66,6 +66,24 @@ const ItemScreen = () => {
     }, []);
 
     useEffect(() => {
+        const initializeUserAndCart = async () => {
+            try {
+                const [userResponse, cartResponse] = await Promise.all([
+                    getUserDetails(),
+                    getCart()
+                ]);
+                setUser(userResponse);
+                setCartItems(cartResponse.data.cartItems);
+            } catch (error) {
+                console.error("Initialization failed:", error);
+            }
+        };
+
+        initializeUserAndCart();
+    }, []);
+
+
+    useEffect(() => {
         const getCategoryList = async () => {
             try {
                 setLoadingCategory(true);
@@ -87,9 +105,9 @@ const ItemScreen = () => {
 
     useFocusEffect(
         useCallback(() => {
-            getUserAndCart();
+            if (!user) return;
             getItems(activeCategory, page, search);
-        }, [activeCategory, page, search])
+        }, [activeCategory, page, search, user])
     );
 
     const getItems = useCallback(async (categoryId: number, page: number, search: string) => {
@@ -97,45 +115,41 @@ const ItemScreen = () => {
             if (activeCategory !== lastCategory) {
                 setProducts([]);
             }
-            if (!loadingMore)
+
+            if (!loadingMore) {
                 setLoading(true);
-            const userResponse = await getUserDetails();
-            setUser(userResponse)
-            const response = await getProducts(categoryId, page, search.trim(), Number(userResponse?.branchId));
-            if (response.isSuccess) {
-                FastImage.clearMemoryCache();
-                FastImage.clearDiskCache();
-                let newProducts = response.data;
-                const cartResponse = await getCart();
-                const cartItems = cartResponse.data.cartItems;
-                setCartItems(cartItems)
-                newProducts = newProducts.map(product => {
-                    const cartItem = cartItems.find((item) => item.itemId === product.id);
-                    if (cartItem) {
-                        return {
-                            ...product,
-                            quantity: product.quantity - cartItem.quantity,
-                        };
-                    }
-                    return product;
-                });
-                setProducts(prevProducts => page === 1 ? newProducts : [...prevProducts, ...newProducts]);
-                if (newProducts.length === 0 || products.length + newProducts.length >= (response.totalCount || 0)) {
-                    setHasMoreData(false);
-                } else {
-                    setHasMoreData(true);
-                }
-            } else {
-                setProducts([])
             }
+
+            if (!user) {
+                console.warn("User not loaded yet.");
+                return;
+            }
+
+            const response = await getProducts(categoryId, page, search.trim(), Number(user.branchId));
+            if (response.isSuccess) {
+                const newProducts = response.data.map(product => {
+                    const cartItem = cartItems.find(item => item.itemId === product.id);
+                    return cartItem
+                        ? { ...product, quantity: product.quantity - cartItem.quantity }
+                        : product;
+                });
+
+                setNumberItems(prev => prev + 1);
+                setProducts(prevProducts => page === 1 ? newProducts : [...prevProducts, ...newProducts]);
+
+                const total = response.totalCount ?? newProducts.length;
+                const hasMore = newProducts.length === 30 && (page * 30) < total;
+                setHasMoreData(hasMore);
+            } else {
+                setProducts([]);
+            }
+        } catch (error) {
+            console.error("Error fetching products:", error);
+        } finally {
             setLoading(false);
             setLoadingMore(false);
         }
-        finally {
-            setLoading(false);
-            setLoadingMore(false);
-        }
-    }, [activeCategory, lastCategory, loadingMore, products.length]);
+    }, [activeCategory, lastCategory, loadingMore, user, cartItems]);
 
     const loadMoreCategories = useCallback(() => {
         if (!loading && !loadingMore && hasMoreData) {
@@ -151,6 +165,12 @@ const ItemScreen = () => {
         setTotalPrice(parseFloat(result.data.cart.subTotal.toString()));
     }, []);
 
+    useFocusEffect(
+        useCallback(() => {
+            getUserAndCart();
+        }, [getUserAndCart])
+    );
+    
     const debouncedAddToCart = useCallback(debounce(async (item: ItemDto) => {
         if (!item.sellByUnit) {
             setSelectedItem(item);
@@ -402,7 +422,7 @@ const ItemScreen = () => {
     });
 
     const renderItem = useCallback(({ item, index }: { item: ItemDto, index: number }) => <ProductItem item={item} index={index} />, []);
-    const keyExtractor = useCallback((item: ItemDto) => item.id.toString(), []);
+    const keyExtractor = useCallback((item: ItemDto, index: number) => `${item.id}-${index}`, []);
 
     const handleKeyPress = useCallback((key: string) => {
         if (selectedItem) {
@@ -442,7 +462,7 @@ const ItemScreen = () => {
                 <View className="items-center mt-4">
                     <View className="flex flex-column items-center">
                         <Text className="text-lg font-bold text-gray-600 px-3 mt-4">Enter Quantity Sold</Text>
-                        <View className="flex flex-row items-center mt-6 w-48 border-b-2 border-[#fe6500] px-4 justify-center">
+                        <View className="flex flex-row items-center mt-6   border-b-2 border-[#fe6500] px-4 justify-center">
                             <Text className="text-center text-3xl text-[#fe6500] tracking-widest">
                                 {quantity}
                             </Text>
@@ -486,6 +506,8 @@ const ItemScreen = () => {
                             onChangeText={(text) => {
                                 setLoading(true)
                                 setSearch(text);
+                                setProducts([]);
+                                setHasMoreData(false);
                                 setPage(1);
                             }}
                             onFocus={() => Keyboard.isVisible()}
@@ -534,7 +556,7 @@ const ItemScreen = () => {
                             <Text className="text-center text-[#fe6500]">Getting Items...</Text>
                         </View>
                     ) : (
-                        <OptimizedFlatList
+                        <FlatList
                             data={products}
                             onLayout={(event: any) => setListHeight(event.nativeEvent.layout.height)}
                             renderItem={renderItem}
@@ -544,7 +566,7 @@ const ItemScreen = () => {
                             onEndReached={loadMoreCategories}
                             onEndReachedThreshold={0.5}
                             showsVerticalScrollIndicator={false}
-                            ListFooterComponent={loadingMore && <ActivityIndicator size="small" color="#fe6500" />}
+                            ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color="#fe6500" /> : null}
                         />
                     )
                     }

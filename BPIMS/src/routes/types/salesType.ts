@@ -25,6 +25,7 @@ export type CartItems = {
     name: string;
     sellByUnit: boolean;
     branchQty: number;
+    branchName: string;
 }
 
 export type Cart = {
@@ -113,4 +114,5 @@ export type SaleItemsDto = {
     netSales: number;
     itemCost: number;
     grossProfit: number;
+    deliveryFee: number;
 }

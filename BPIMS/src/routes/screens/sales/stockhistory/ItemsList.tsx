@@ -1,10 +1,9 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { ExternalLink, Search } from "react-native-feather";
-import { OptimizedFlatList } from 'react-native-optimized-flatlist';
 import ExpandableText from '../../../../components/ExpandableText';
 import Sidebar from '../../../../components/Sidebar';
 import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
@@ -82,7 +81,11 @@ const ItemListScreen = () => {
 
                     setProducts(prevProducts => page === 1 ? newProducts : [...prevProducts, ...newProducts]);
 
-                    setHasMoreData(newProducts.length > 0 && products.length + newProducts.length < (response.totalCount || 0));
+                    if (newProducts.length < 30 || (response.totalCount && (page * 30) >= response.totalCount)) {
+                        setHasMoreData(false);
+                    } else {
+                        setHasMoreData(true);
+                    }
                 } else {
                     setProducts([]);
                 }
@@ -207,6 +210,8 @@ const ItemListScreen = () => {
                                 setSearch(text);
                                 setLoading(true)
                                 setPage(1);
+                                setLoadingMore(false);
+                                setProducts([]);
                             }}
                             ref={inputRef}
                             selectionColor="orange"
@@ -221,7 +226,7 @@ const ItemListScreen = () => {
                     </View>
                 ) : (
                     <View className='w-full px-1'>
-                        <OptimizedFlatList
+                        <FlatList
                             data={products}
                             renderItem={renderItem}
                             showsVerticalScrollIndicator={false}
@@ -230,7 +235,7 @@ const ItemListScreen = () => {
                             contentContainerStyle={{ paddingBottom: 20 }}
                             onEndReached={loadMoreCategories}
                             onEndReachedThreshold={0.5}
-                            ListFooterComponent={loadingMore && <ActivityIndicator size="small" color="#fe6500" />}
+                            ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color="#fe6500" /> : null}
                         />
                     </View>
                 )}

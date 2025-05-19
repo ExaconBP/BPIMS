@@ -13,7 +13,7 @@ sgt = pytz.timezone('Asia/Singapore')
 async def getCartandItems(userId):
     cart = await getCartforUser(userId)
     user = await User.get_or_none(id = userId)
-    totalCount = await getTotalItemCount(cart.id);    
+    totalCount = await getTotalItemCount(cart.id)   
     cartItems = await getCartItems(cart.id, user.branchId)
 
     cart_data = cart.__dict__  
@@ -28,7 +28,7 @@ async def getCartandItems(userId):
                 "discount": cart_data["discount"],
                 "deliveryFee": cart_data["deliveryFee"],
                 "subTotal": str(cart_data["subTotal"]),
-                "customerName": customer.name if customer else None 
+                "customerName": customer.name if customer else None
             },
             "cartItems": cartItems
         }
@@ -68,6 +68,7 @@ async def getCartItems(cartId, branchId):
         for cartItem in cartItems:
             branchItem = await BranchItem.get_or_none(id=cartItem.branchItemId)
             item = await Item.get_or_none(id=branchItem.itemId)
+            branch = await Branch.get_or_none(id = branchItem.branchId)
             if item:
                 result.append({
                     "id": cartItem.id,
@@ -76,7 +77,8 @@ async def getCartItems(cartId, branchId):
                     "price": item.price,
                     "quantity": cartItem.quantity,
                     "sellByUnit": item.sellByUnit,
-                    "branchQty": branchItem.quantity
+                    "branchQty": branchItem.quantity,
+                    "branchName": branch.name
                 })
 
     return result
@@ -315,6 +317,7 @@ async def processPayment(cartId, amountReceived):
                 amount=itemAmount,
                 isVoided=False
             )
+            await branchItem.save()
             transactionItems.append({
                 "id": tItem.id,
                 "itemId": item.id,
@@ -324,8 +327,6 @@ async def processPayment(cartId, amountReceived):
                 "amount": tItem.amount,
                 "sellByUnit": item.sellByUnit
             })
-
-    await branchItem.save()
 
     loyaltyItem = {}
     done = False
@@ -341,7 +342,7 @@ async def processPayment(cartId, amountReceived):
         query = """
             SELECT ls.orderId, ls.itemRewardId, lc.id as lcId
             FROM loyaltycustomers lc
-            JOIN loyaltyStages ls ON lc.stageId = ls.id
+            JOIN loyaltystages ls ON lc.stageId = ls.id
             WHERE lc.customerId = %s AND lc.isDone = TRUE
             ORDER BY ls.orderId DESC
             LIMIT 1

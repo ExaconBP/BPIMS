@@ -593,14 +593,15 @@ const SalesReportScreen = React.memo(() => {
                         </View>
                         <View className="w-full mb-4 px-2">
                             <View className="w-full mb-4 flex flex-row gap-2">
-                                <View className='border border-gray-300 rounded flex-1 flex flex-columns p-2 items-center'>
-                                    <Text className='text-gray-700 font-bold'>
-                                        Gross Sales
-                                    </Text>
+                                <View className='border border-gray-300 rounded w-1/2 p-2 items-center'>
+                                    <Text className='text-gray-700 font-bold'>Gross Sales</Text>
                                     <Text className='text-[#fe6500]'>{formatCurrency(salesItemData?.grossSales || 0)}</Text>
                                 </View>
+                                <View className='border border-gray-300 rounded w-1/2 p-2 items-center'>
+                                    <Text className='text-gray-700 font-bold'>Delivery Fee</Text>
+                                    <Text className='text-[#fe6500]'>{formatCurrency(salesItemData?.deliveryFee || 0)}</Text>
+                                </View>
                             </View>
-
                             <View className="w-full mb-4 flex flex-row gap-2">
                                 <View className='border border-gray-300 rounded w-1/2 p-2 items-center'>
                                     <Text className='text-gray-700 font-bold'>Discounts</Text>
@@ -618,7 +619,7 @@ const SalesReportScreen = React.memo(() => {
                                     <Text className='text-[#fe6500]'>{formatCurrency(salesItemData?.itemCost || 0)}</Text>
                                 </View>
                                 <View className='border border-gray-300 rounded w-1/2 p-2 items-center'>
-                                    <Text className='text-gray-700 font-bold'>Gross Profit</Text>
+                                    <Text className='text-gray-700 font-bold'>Net Profit</Text>
                                     <Text className='text-[#fe6500]'>{formatCurrency(salesItemData?.grossProfit || 0)}</Text>
                                 </View>
                             </View>

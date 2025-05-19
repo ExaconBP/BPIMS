@@ -5,7 +5,7 @@ import { ActivityIndicator, Keyboard, Text, TextInput, TouchableOpacity, View } 
 import SelectModal from '../../../../components/SelectModal';
 import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
 import { LoyaltyParamsList } from '../../../navigation/navigation';
-import { saveLoyaltyStage } from '../../../services/customerRepo';
+import { deleteStage, saveLoyaltyStage } from '../../../services/customerRepo';
 import { LoyaltyStageDto } from '../../../types/customerType';
 
 type Props = NativeStackScreenProps<LoyaltyParamsList, 'LoyaltyStage'>;
@@ -76,8 +76,7 @@ const LoyaltyStageScreen = memo(({ route }: Props) => {
         setIsValid(!!isFormValid);
     }, [stage]);
 
-
-    const saveStockInput = useCallback(async () => {
+    const saveStage = useCallback(async () => {
         try {
             setLoading(true)
 
@@ -94,14 +93,32 @@ const LoyaltyStageScreen = memo(({ route }: Props) => {
         }
     }, [stage]);
 
+    const deleteLoyaltyStage = useCallback(async () => {
+        try {
+            setLoading(true)
+
+            if (stage) {
+                if (stage.itemRewardId == 0) stage.itemRewardId == null
+                await deleteStage(stage.id)
+                navigation.navigate('LoyaltyView', { item: loyaltyCard, user })
+            }
+            initializeStage();
+            setLoading(false)
+        }
+        finally {
+            setLoading(false)
+        }
+    }, [stage]);
+
     const handleSelectSupplier = (item: { id: number; name: string }) => {
         handleChange("itemRewardId", item.id);
         handleChange("rewardName", item.name);
         setOpenRewards(false);
     };
+
     const renderNormalMode = useMemo(() => (
         <View className="flex flex-1">
-            <TitleHeaderComponent isParent={false} userName={user?.name || ""} title="Loyalty Rewards" onPress={() => navigation.navigate('LoyaltyView', { item: loyaltyCard, user })}></TitleHeaderComponent>
+            <TitleHeaderComponent showTrash={true} onTrashPress={deleteLoyaltyStage} isParent={false} userName={user?.name || ""} title="Loyalty Rewards" onPress={() => navigation.goBack()}></TitleHeaderComponent>
             <View className="px-4 w-full">
                 {stage && (
                     <View className='w-full'>
@@ -139,7 +156,7 @@ const LoyaltyStageScreen = memo(({ route }: Props) => {
             {!keyboardVisible && (
                 <View className='items-center absolute bottom-0 left-0 right-0 pb-2'>
                     <TouchableOpacity
-                        onPress={saveStockInput}
+                        onPress={saveStage}
                         className={`w-[95%] rounded-xl p-3 flex flex-row items-center ${!isValid ? 'bg-gray border-2 border-[#fe6500]' : 'bg-[#fe6500]'}`}
                         disabled={!isValid}
                     >
@@ -162,7 +179,7 @@ const LoyaltyStageScreen = memo(({ route }: Props) => {
                 </View>
             )}
         </View >
-    ), [handleChange, item, keyboardVisible, navigation, openDate, saveStockInput, stage, user?.name, isValid, rewards, setOpenRewards, openRewards]);
+    ), [handleChange, item, keyboardVisible, navigation, openDate, saveStage, stage, user?.name, isValid, rewards, setOpenRewards, openRewards, loading]);
 
     return (
         <View className="flex flex-1">

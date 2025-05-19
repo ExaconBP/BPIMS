@@ -69,7 +69,7 @@ const PaymentScreen = React.memo(({ route }: Props) => {
 
     return (
         <View style={{ flex: 1 }}>
-            <TitleHeaderComponent title='Payment' isParent={false} userName={user.name} onPress={() => navigation.navigate('Cart', { user })}></TitleHeaderComponent>
+            <TitleHeaderComponent title='Payment' isParent={false} userName={user.name} onPress={() => navigation.goBack()}></TitleHeaderComponent>
 
             <View className="items-center bg-gray relative pb-32">
                 <View className="w-full h-[2px] bg-gray-500 mb-2"></View>

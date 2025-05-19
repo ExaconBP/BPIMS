@@ -10,10 +10,8 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import FastImage from 'react-native-fast-image';
-import { Camera } from 'react-native-feather';
-import RNFS from 'react-native-fs';
 import { CameraOptions, ImageLibraryOptions, launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
+import ItemImage from '../../../../components/ItemImage';
 import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
 import { ItemStackParamList } from '../../../navigation/navigation';
 import { saveCustomer } from '../../../services/customerRepo';
@@ -156,7 +154,8 @@ const NewCustomerScreen = React.memo(({ route }: Props) => {
           } as any);
         }
         const result = await saveCustomer(formData);
-        await updateCustomer(result.data);
+        if (result)
+          await updateCustomer(result.data);
         navigation.navigate('Payment', { user });
       }
     }
@@ -186,16 +185,8 @@ const NewCustomerScreen = React.memo(({ route }: Props) => {
             <Text className='pb-2 mb-2 text-[#fe6500]'>{customer.branch?.toUpperCase()}</Text>
           </View>
           <TouchableOpacity onPress={handleImageSelect}>
-            {fileUrl ? (
-              <FastImage source={{
-                uri: fileUrl, priority: FastImage.priority.high,
-              }} className="w-24 h-24 rounded-lg" />
-            ) : (
-              <View className="w-24 h-24 bg-gray-500 rounded-lg justify-center items-center">
-                <Camera color="white" height={32} width={32} />
-                <Text className="text-white text-xs mt-1">Add Photo</Text>
-              </View>
-            )}
+            <ItemImage imagePath={fileUrl} />
+
           </TouchableOpacity>
         </View>
         <View className='w-full mb-2'>

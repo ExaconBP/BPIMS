@@ -223,7 +223,7 @@ const CartScreen = React.memo(({ route }: Props) => {
             <Text className="text-lg font-bold text-gray-600 px-3 mt-4">
               Enter Quantity Sold
             </Text>
-            <View className="flex flex-row items-center mt-6 w-48 border-b-2 border-[#fe6500] px-4 justify-center">
+            <View className="flex flex-row items-center mt-6   border-b-2 border-[#fe6500] px-4 justify-center">
               <Text className="text-center text-3xl text-[#fe6500] tracking-widest">
                 {selectedItem?.sellByUnit ? quantity : doubleQuantity}
               </Text>

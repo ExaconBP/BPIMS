@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, BackHandler, Dimensions, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, BackHandler, Dimensions, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { ChevronLeft, Search, Slash } from "react-native-feather";
 import { OptimizedFlatList } from 'react-native-optimized-flatlist';
@@ -197,7 +197,7 @@ const RewardScreen = ({ user, selectItem, onClose }: Props) => {
                 <View className="items-center mt-4">
                     <View className="flex flex-column items-center">
                         <Text className="text-lg font-bold text-gray-600 px-3 mt-4">Enter Quantity</Text>
-                        <View className="flex flex-row items-center mt-6 w-48 border-b-2 border-[#fe6500] px-4 justify-center">
+                        <View className="flex flex-row items-center mt-6 border-b-2 border-[#fe6500] px-4 justify-center">
                             <Text className="text-center text-3xl text-[#fe6500] tracking-widest">
                                 {quantity}
                             </Text>
@@ -277,7 +277,7 @@ const RewardScreen = ({ user, selectItem, onClose }: Props) => {
                             <ActivityIndicator size="large" color="#fe6500" />
                         </View>
                     ) : (
-                        <OptimizedFlatList
+                        <FlatList
                             data={products}
                             renderItem={({ item }: { item: ItemDto }) => <ProductItem item={item} />}
                             onLayout={(event: any) => setListHeight(event.nativeEvent.layout.height)}

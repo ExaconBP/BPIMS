@@ -27,6 +27,7 @@ const SupplierViewScreen = React.memo(({ route }: Props) => {
     const [supplierId, setSupplierId] = useState<number>(Number(id));
     const [supplier, setSupplier] = useState<SupplierDto | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
+    const [buttonLoading, setButtonLoading] = useState<boolean>(false);
     const [fileUrl, setFileUrl] = useState<string | null>(null);
     const [stockHistory, setStockHistory] = useState<WHStockInputHistoryDto[]>([]);
     const [loaderMessage, setLoaderMessage] = useState<string>('Loading Supplier Data...');
@@ -185,6 +186,7 @@ const SupplierViewScreen = React.memo(({ route }: Props) => {
 
     const handleSave = useCallback(async () => {
         try {
+            setButtonLoading(true);
             Keyboard.dismiss();
             setLoaderMessage('Saving supplier...');
             if (supplier) {
@@ -193,7 +195,7 @@ const SupplierViewScreen = React.memo(({ route }: Props) => {
             }
         }
         finally {
-            setLoading(false);
+            setButtonLoading(false);
         }
     }, [supplier, fileUrl, fetchsupplier]);
 
@@ -211,7 +213,7 @@ const SupplierViewScreen = React.memo(({ route }: Props) => {
                             try {
                                 setLoading(true);
                                 const response = await removeSupplier(id);
-                                if (response.isSuccess) {
+                                if (response && response.isSuccess) {
                                     navigation.push('SupplierList');
                                 }
                             }
@@ -241,7 +243,7 @@ const SupplierViewScreen = React.memo(({ route }: Props) => {
                 isParent={false}
                 title={supplier && supplier.name || ""}
                 userName={""}
-                onPress={() => navigation.navigate("SupplierList")}
+                onPress={() => navigation.goBack()}
                 showTrash={supplier && supplier.id !== 0}
                 onTrashPress={() => {
                     if (supplier && supplier.id !== 0) {
@@ -312,9 +314,6 @@ const SupplierViewScreen = React.memo(({ route }: Props) => {
                         </View>
 
 
-                        {loading && (
-                            <ActivityIndicator className='mt-6' size={'small'} color={'#fe6500'}></ActivityIndicator>
-                        )}
                         {stockHistory.length > 0 && (
                             <View className="flex flex-column mt-4 h-[35vh] md:h-[50vh] lg:h-[60vh] pb-2">
                                 <Text className="text-gray-700 text-sm font-bold">Supply History</Text>
@@ -351,7 +350,7 @@ const SupplierViewScreen = React.memo(({ route }: Props) => {
                             <Text className={`font-bold ${!isValid ? 'text-[#fe6500]' : 'text-white'} text-lg`}>SAVE</Text>
 
                         </View>
-                        {loading && (
+                        {buttonLoading && (
                             <ActivityIndicator size={'small'} color={'white'}></ActivityIndicator>
                         )}
                     </TouchableOpacity>

@@ -34,18 +34,22 @@ const TitleHeaderComponent: React.FC<TitleHeaderProps> = ({
     };
 
     return (
-        <View className="top-3 flex bg-gray flex-row items-center px-2 mb-5">
-            <TouchableOpacity className="ml-2" onPress={onPress}>
-                {isParent ? <Menu width={20} height={20} color="#fe6500" /> : <ChevronLeft width={20} height={20} color="#fe6500" />}
+        <View className="top-3 flex bg-gray flex-row items-center mb-5">
+            <TouchableOpacity className="ml-2 px-4" onPress={onPress}>
+                {isParent ? (
+                    <Menu width={20} height={20} color="#fe6500" />
+                ) : (
+                    <ChevronLeft width={20} height={20} color="#fe6500" />
+                )}
             </TouchableOpacity>
 
             <View className="absolute w-full items-center">
                 <Text className={`text-black font-bold ${getTitleStyle(title)}`}>{title.toUpperCase()}</Text>
             </View>
 
-            <View className="ml-auto flex flex-row items-center">
+            <View className="ml-auto flex flex-row items-center pr-2">
                 {showTrash ? (
-                    <TouchableOpacity onPress={onTrashPress} className="mr-2">
+                    <TouchableOpacity onPress={onTrashPress} className="mr-2 px-2">
                         <Trash2 width={20} height={20} color="#fe6500" />
                     </TouchableOpacity>
                 ) : userName ? (

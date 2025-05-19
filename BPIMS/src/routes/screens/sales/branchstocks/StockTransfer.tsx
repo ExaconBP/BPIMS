@@ -3,9 +3,8 @@ import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-naviga
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Keyboard, Text, TouchableOpacity, View } from 'react-native';
 import DatePicker from 'react-native-date-picker';
-import FastImage from 'react-native-fast-image';
-import { Camera } from 'react-native-feather';
 import ExpandableText from '../../../../components/ExpandableText';
+import ItemImage from '../../../../components/ItemImage';
 import NumericKeypad from '../../../../components/NumericKeypad';
 import SelectModal from '../../../../components/SelectModal';
 import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
@@ -14,7 +13,6 @@ import { saveTransferStock } from '../../../services/stockRepo';
 import { getBranches } from '../../../services/userRepo';
 import { BranchStockDto, StockTransferDto } from '../../../types/stockType';
 import { ObjectDto, UserDetails } from '../../../types/userType';
-import { getItemImage } from '../../../services/itemsHQRepo';
 
 type Props = NativeStackScreenProps<BranchStockParamList, 'StockTransfer'>;
 
@@ -57,8 +55,7 @@ export default function StockTransferScreen({ route }: Props) {
     async function getStockInputHistory() {
         try {
             setLoading(true);
-            FastImage.clearMemoryCache();
-            FastImage.clearDiskCache();
+
             const responseBranch = await getBranches();
             const filteredBranches = responseBranch.filter(x => x.id != user.branchId);
             setBranches(filteredBranches);
@@ -242,7 +239,7 @@ export default function StockTransferScreen({ route }: Props) {
                             <Text className="text-lg font-bold text-gray-600 px-3 mt-4">Enter {fieldLabels[editingField ?? 'quantity']}
                             </Text>
 
-                            <View className="flex flex-row items-center mt-6 w-48 border-b-2 border-[#fe6500] px-4 justify-center">
+                            <View className="flex flex-row items-center mt-6   border-b-2 border-[#fe6500] px-4 justify-center">
                                 <Text className="text-center text-3xl text-[#fe6500] tracking-widest">
                                     {item.sellByUnit
                                         ? String(stockTransfer?.[editingField] || 0)
@@ -268,7 +265,7 @@ export default function StockTransferScreen({ route }: Props) {
                 </View >
             ) : (
                 <View className="flex flex-1">
-                    <TitleHeaderComponent title="stock transfer" userName={user?.name || ""} onPress={() => navigation.push('BranchStock')}
+                    <TitleHeaderComponent title="stock transfer" userName={user?.name || ""} onPress={() => navigation.goBack()}
                         isParent={false}></TitleHeaderComponent>
                     <View className="w-full h-[2px] bg-gray-500 mb-2"></View>
 
@@ -276,15 +273,8 @@ export default function StockTransferScreen({ route }: Props) {
                         <View className="w-full flex items-center">
                             <ExpandableText text={item.name}></ExpandableText>
                             <View className="w-full flex items-center mt-2 mb-2">
-                                {item.imagePath ? (
-                                    <FastImage source={{
-                                        uri: getItemImage(item.imagePath), priority: FastImage.priority.high,
-                                    }} className="w-24 h-24 rounded-lg" />) : (
-                                    <View className="w-full h-24 bg-gray-500 rounded-lg justify-center items-center">
-                                        <Camera color={"white"} height={32} width={32} />
-                                        <Text className='text-white text-xs mt-1'>No Image</Text>
-                                    </View>
-                                )}
+                                <ItemImage imagePath={item.imagePath} />
+
                             </View>
                         </View>
 

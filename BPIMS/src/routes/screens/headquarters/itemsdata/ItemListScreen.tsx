@@ -1,10 +1,9 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { PlusCircle, Search } from "react-native-feather";
-import { OptimizedFlatList } from 'react-native-optimized-flatlist';
 import ExpandableText from '../../../../components/ExpandableText';
 import HQSidebar from '../../../../components/HQSidebar';
 import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
@@ -56,6 +55,8 @@ const ItemListScreen = () => {
                 FastImage.clearMemoryCache();
                 FastImage.clearDiskCache();
                 const response = await getCategoriesHQ();
+                const userResponse = await getUserDetails();
+                setUser(userResponse);
                 if (response.isSuccess) {
                     setCategories(response.data);
                 } else {
@@ -88,8 +89,6 @@ const ItemListScreen = () => {
             }
 
             if (!loadingMore) setLoading(true);
-            const userResponse = await getUserDetails();
-            setUser(userResponse);
 
             const response = await getProductsHQ(categoryId, page, search.trim());
 
@@ -97,9 +96,13 @@ const ItemListScreen = () => {
                 let newProducts = response.data;
 
                 setProducts(prevProducts => page === 1 ? newProducts : [...prevProducts, ...newProducts]);
-
-                setHasMoreData(newProducts.length > 0 && products.length + newProducts.length < (response.totalCount || 0));
-            } else {
+                if (newProducts.length < 30 || (response.totalCount && (page * 30) >= response.totalCount)) {
+                    setHasMoreData(false);
+                } else {
+                    setHasMoreData(true);
+                }
+            }
+            else {
                 setProducts([]);
             }
             setLoading(false);
@@ -212,6 +215,8 @@ const ItemListScreen = () => {
                                 setSearch(text);
                                 setLoading(true)
                                 setPage(1);
+                                setLoadingMore(false)
+                                setProducts([])
                             }}
                             ref={inputRef}
                             selectionColor="orange"
@@ -228,8 +233,8 @@ const ItemListScreen = () => {
                         <Text className="text-[#fe6500] mt-2">Loading Items...</Text>
                     </View>
                 ) : (
-                    <View className='w-full px-1'>
-                        <OptimizedFlatList
+                    <View className='w-full px-1 pb-8'>
+                        <FlatList
                             data={products}
                             renderItem={renderItem}
                             showsVerticalScrollIndicator={false}
@@ -238,7 +243,7 @@ const ItemListScreen = () => {
                             contentContainerStyle={{ paddingBottom: 20 }}
                             onEndReached={loadMoreCategories}
                             onEndReachedThreshold={0.5}
-                            ListFooterComponent={loadingMore && <ActivityIndicator size="small" color="#fe6500" />}
+                            ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color="#fe6500" /> : null}
                         />
                     </View>
                 )}

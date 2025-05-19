@@ -4,7 +4,7 @@ import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Keyboard, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
 import { LoyaltyParamsList } from '../../../navigation/navigation';
-import { saveRewards } from '../../../services/customerRepo';
+import { deleteReward, saveRewards } from '../../../services/customerRepo';
 import { ObjectDto } from '../../../types/userType';
 
 type Props = NativeStackScreenProps<LoyaltyParamsList, 'RewardView'>;
@@ -71,7 +71,7 @@ const RewardViewScreen = memo(({ route }: Props) => {
     }, [reward]);
 
 
-    const saveStockInput = useCallback(async () => {
+    const saveReward = useCallback(async () => {
         try {
             setLoading(true)
             if (reward) {
@@ -86,9 +86,24 @@ const RewardViewScreen = memo(({ route }: Props) => {
         }
     }, [reward]);
 
+    const deleteLoyaltyReward = useCallback(async () => {
+        try {
+            setLoading(true)
+            if (reward) {
+                await deleteReward(reward.id)
+            }
+            initializeCard();
+            setLoading(false)
+            navigation.push('LoyaltyScreen')
+        }
+        finally {
+            setLoading(false)
+        }
+    }, [reward]);
+
     const renderNormalMode = useMemo(() => (
         <View className="flex flex-1">
-            <TitleHeaderComponent isParent={false} userName={user?.name || ""} title="Loyalty Rewards" onPress={() => navigation.navigate('LoyaltyScreen')}></TitleHeaderComponent>
+            <TitleHeaderComponent showTrash={true} onTrashPress={deleteLoyaltyReward} isParent={false} userName={user?.name || ""} title="Loyalty Rewards" onPress={() => navigation.goBack()}></TitleHeaderComponent>
             <View className="px-4 w-full">
                 {reward && (
                     <View className='w-full'>
@@ -112,7 +127,7 @@ const RewardViewScreen = memo(({ route }: Props) => {
             {!keyboardVisible && (
                 <View className='items-center absolute bottom-0 left-0 right-0 pb-2'>
                     <TouchableOpacity
-                        onPress={saveStockInput}
+                        onPress={saveReward}
                         className={`w-[95%] rounded-xl p-3 flex flex-row items-center ${!isValid ? 'bg-gray border-2 border-[#fe6500]' : 'bg-[#fe6500]'}`}
                         disabled={!isValid}
                     >
@@ -126,7 +141,7 @@ const RewardViewScreen = memo(({ route }: Props) => {
                 </View>
             )}
         </View >
-    ), [handleChange, item, keyboardVisible, navigation, openDate, saveStockInput, reward, user?.name, isValid]);
+    ), [handleChange, item, keyboardVisible, navigation, openDate, saveReward, reward, user?.name, isValid, loading]);
 
     return (
         <View className="flex flex-1">

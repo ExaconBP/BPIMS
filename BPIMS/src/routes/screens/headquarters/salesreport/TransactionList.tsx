@@ -127,7 +127,7 @@ const TransactionListScreen = React.memo(({ route }: Props) => {
 
     return (
         <View className='flex flex-1'>
-            <TitleHeaderComponent isParent={false} userName={user?.name || ""} title="All Transactions" onPress={() => navigation.push('SalesReport')}></TitleHeaderComponent>
+            <TitleHeaderComponent isParent={false} userName={user?.name || ""} title="All Transactions" onPress={() => navigation.goBack()}></TitleHeaderComponent>
 
             <View className="w-full justify-center items-center bg-gray relative">
                 <View className="w-full flex-row justify-between items-center">
@@ -154,7 +154,7 @@ const TransactionListScreen = React.memo(({ route }: Props) => {
 
                 <View className="w-full h-[2px] bg-gray-500"></View>
             </View>
-            <View className="justify-center items-center bg-gray relative">
+            <View className="justify-center items-center bg-gray relative mb-6 pb-16">
                 <View className="flex flex-row w-full bg-gray-300 py-1 px-3 items-center">
                     <View className="flex-row items-center rounded-md px-2 flex-1">
                         <TouchableOpacity className="mr-2" onPress={handleSearchClick}>

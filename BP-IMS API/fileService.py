@@ -237,7 +237,7 @@ async def generateReceipt(transactionId):
     }
     
     buffer = await generate_receipt_pdf(transactionData['transaction'], transactionData['transactionItems'])
-    return 
+    return buffer
 
 async def generateSalesReport(from_date_str, to_date_str, branch_id):
     branchName = ""

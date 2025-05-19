@@ -5,6 +5,7 @@ import { logOutUser } from './auth';
 import { VITE_MAIN_API } from '@env';
 
 const MAIN_API_URL = VITE_MAIN_API;
+console.log(MAIN_API_URL)
 const baseAxiosInstance = axios.create({
   baseURL: MAIN_API_URL,
   headers: {

@@ -1,6 +1,6 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
@@ -39,6 +39,19 @@ const TransactionListScreen = React.memo(() => {
         inputRef.current?.focus();
     }, []);
 
+    useEffect(() => {
+        const fetchUserDetails = async () => {
+            try {
+                const userResponse = await getUserDetails();
+                setUser(userResponse);
+            } catch (error) {
+                console.error('Failed to fetch user details:', error);
+            }
+        };
+
+        fetchUserDetails();
+    }, []);
+
     useFocusEffect(
         useCallback(() => {
             getTransactionHistory(page, search);
@@ -49,8 +62,6 @@ const TransactionListScreen = React.memo(() => {
         try {
             if (!loadingMore)
                 setLoading(true);
-            const userResponse = await getUserDetails();
-            setUser(userResponse)
             const response = await getAllCentralTransactionHistory(activeCategory, page, search.trim());
             if (response.isSuccess) {
                 let tr = response.data;

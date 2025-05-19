@@ -49,13 +49,14 @@ const TransactionScreen = React.memo(({ route }: Props) => {
             if (cart && payment) {
                 setLoading(true);
                 const result = await processPayment(Number(payment));
-                if (result.isSuccess) {
+                if (result && result.isSuccess) {
                     setDone(true);
                     setTransaction(result.data.transaction);
                     setTransactionItems(result.data.transactionItems);
                     setLoyaltyItem(result.data.loyaltyItemDto);
                 } else {
-                    Alert.alert('An Error Occurred', result.message);
+                    if (result)
+                        Alert.alert('An Error Occurred', result.message);
                 }
                 setLoading(false);
             }
@@ -142,7 +143,7 @@ const TransactionScreen = React.memo(({ route }: Props) => {
                                         <Text className="text-lg font-bold text-gray-600 px-3 mt-4">
                                             Amount Received
                                         </Text>
-                                        <View className="flex flex-row items-center mt-6 w-48 border-b-2 border-[#fe6500] px-4 justify-center">
+                                        <View className="flex flex-row items-center mt-6   border-b-2 border-[#fe6500] px-4 justify-center">
                                             <Text className="text-center text-3xl text-[#fe6500] tracking-widest">
                                                 ₱ {payment}
                                             </Text>

@@ -3,16 +3,14 @@ import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-naviga
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Keyboard, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import DatePicker from 'react-native-date-picker';
-import FastImage from 'react-native-fast-image';
-import { Camera } from 'react-native-feather';
 import ExpandableText from '../../../../components/ExpandableText';
+import ItemImage from '../../../../components/ItemImage';
 import NumericKeypad from '../../../../components/NumericKeypad';
 import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
 import { BranchStockParamList } from '../../../navigation/navigation';
 import { createStockInput } from '../../../services/stockRepo';
 import { BranchStockDto, StockInputDto } from '../../../types/stockType';
 import { UserDetails } from '../../../types/userType';
-import { getItemImage } from '../../../services/itemsHQRepo';
 
 type Props = NativeStackScreenProps<BranchStockParamList, 'StockInput'>;
 
@@ -214,7 +212,7 @@ export default function StockInputScreen({ route }: Props) {
                             <Text className="text-lg font-bold text-gray-600 px-3 mt-4">Enter {fieldLabels[editingField ?? 'qty']}
                             </Text>
 
-                            <View className="flex flex-row items-center mt-6 w-48 border-b-2 border-[#fe6500] px-4 justify-center">
+                            <View className="flex flex-row items-center mt-6   border-b-2 border-[#fe6500] px-4 justify-center">
                                 <Text className="text-center text-3xl text-[#fe6500] tracking-widest">
                                     {item.sellByUnit
                                         ? String(stockInput?.[editingField] || 0)
@@ -240,22 +238,14 @@ export default function StockInputScreen({ route }: Props) {
                 </View >
             ) : (
                 <View className="flex flex-1">
-                    <TitleHeaderComponent title='Stock Inputs' userName={user?.name || ""} onPress={() => navigation.push('BranchStock')}
+                    <TitleHeaderComponent title='Stock Inputs' userName={user?.name || ""} onPress={() => navigation.goBack()}
                         isParent={false}></TitleHeaderComponent>
 
                     <View className="px-4 w-full">
                         <View className="w-full flex items-center">
                             <ExpandableText text={item.name}></ExpandableText>
                             <View className="w-full flex items-center mt-2 mb-2">
-                                {item.imagePath ? (
-                                    <FastImage source={{
-                                        uri: getItemImage(item.imagePath), priority: FastImage.priority.high,
-                                    }} className="w-24 h-24 rounded-lg" />) : (
-                                    <View className="w-full h-24 bg-gray-500 rounded-lg justify-center items-center">
-                                        <Camera color={"white"} height={32} width={32} />
-                                        <Text className='text-white text-xs mt-1'>No Image</Text>
-                                    </View>
-                                )}
+                                <ItemImage imagePath={item.imagePath} />
                             </View>
                         </View>
 

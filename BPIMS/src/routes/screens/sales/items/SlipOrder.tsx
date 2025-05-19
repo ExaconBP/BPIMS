@@ -18,7 +18,7 @@ import PrinterIcon from '../../../../components/icons/PrinterIcon';
 import { base64Image } from '../../../../components/images/base64Image';
 import { ItemStackParamList } from '../../../navigation/navigation';
 import { generateReceipt } from '../../../services/salesRepo';
-import { formatShortDateTimePH, formatTransactionDate } from '../../../utils/dateFormat';
+import { formatShortDateTimePH, formatTransactionDate, truncateName } from '../../../utils/dateFormat';
 
 type Props = NativeStackScreenProps<ItemStackParamList, 'SlipOrder'>;
 
@@ -67,7 +67,7 @@ const SlipOrderScreen = React.memo(({ route }: Props) => {
             const itemsText = transactionItems
                 .map(
                     (item) =>
-                        `[L]${item.sellByUnit ? Math.round(Number(item.quantity)).toFixed(0) : Number(item.quantity).toFixed(2)}X${item.name}\n` +
+                        `[L]${item.sellByUnit ? Math.round(Number(item.quantity)).toFixed(0) : Number(item.quantity).toFixed(2)}X${truncateName(item.name)}\n` +
                         `[L]    PHP ${Number(item.price).toFixed(2)} [R] PHP ${Number(item.amount).toFixed(2)}\n`
                 )
                 .join('');
@@ -94,8 +94,8 @@ const SlipOrderScreen = React.memo(({ route }: Props) => {
                 `[L]<font size='normal'>Cash: [R] PHP ${Number(transaction?.amountReceived).toFixed(2)}</font>\n` +
                 `[L]<font size='normal'>Change: [R] PHP ${(Number(transaction?.amountReceived || 0) - Number(transaction?.totalAmount || 0)).toFixed(2)}</font>\n` +
                 '[C]--------------------------------\n' +
-                `[C]<font size='normal'>This is an Order Slip. Ask for Sales Invoice</font>\n` +
-                `[C]<font size='normal'>at the Receipt Counter.</font>\n` +
+                `[C]<font size='normal'>This is an Order Slip</font>\n` +
+                `[C]<font size='normal'>Ask for Sales Invoice at the Receipt Counter.</font>\n` +
                 '[L]\n';
             await ThermalPrinterModule.printBluetooth({
                 payload: text,
