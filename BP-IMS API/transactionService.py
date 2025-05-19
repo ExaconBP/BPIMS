@@ -521,7 +521,6 @@ async def getAllTransactionsAsyncHQ(branchId=None, page=1, search=""):
         INNER JOIN users u ON u.id = tr.cashierId
         INNER JOIN branches b ON b.id = tr.branchId
     """
-
     if branchId is not None:
         dailyTransactsDto += " WHERE tr.branchId = %s"
         params.append(branchId)

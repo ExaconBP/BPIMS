@@ -118,7 +118,7 @@ const StockInputScreen = memo(({ route }: Props) => {
             setLoading(true)
             await createWHStockInput(stockInput);
             newStockInput();
-            navigation.push('WHScreen')
+            navigation.navigate('WHScreen')
             setLoading(false)
         }
     }, [stockInput, newStockInput]);

@@ -147,7 +147,7 @@ const UserViewScreen = React.memo(({ route }: Props) => {
                 } else {
                     await editUser(user);
                 }
-                navigation.push('Users')
+                navigation.navigate('Users')
                 setButtonLoading(false);
             }
         }
@@ -178,7 +178,7 @@ const UserViewScreen = React.memo(({ route }: Props) => {
                             text: "Confirm",
                             onPress: async () => {
                                 await setUserInactive(user.id);
-                                navigation.push('Users');
+                                navigation.navigate('Users');
                                 setButtonLoading(false);
                             }
                         }

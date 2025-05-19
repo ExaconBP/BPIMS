@@ -400,10 +400,10 @@ const StockMonitorScreen = React.memo(() => {
     // Input mode view
     const inputModeView = useMemo(() => (
         <View style={{ flex: 1 }}>
-            <TitleHeaderComponent 
-                onPress={() => setState(prev => ({ ...prev, isInputMode: false }))} 
-                isParent={false} 
-                title='please enter quantity' 
+            <TitleHeaderComponent
+                onPress={() => setState(prev => ({ ...prev, isInputMode: false }))}
+                isParent={false}
+                title='please enter quantity'
                 userName=''
             />
             <View className="w-full h-[2px] bg-gray-500 mb-2" />
@@ -424,9 +424,9 @@ const StockMonitorScreen = React.memo(() => {
             </View>
             <View className='absolute bottom-0 w-full items-center pb-3 pt-2'>
                 <NumericKeypad onPress={handleKeyPress} onBackspace={handleBackspace} />
-                <TouchableOpacity 
-                    disabled={state.buttonLoading} 
-                    onPress={saveEditedStock} 
+                <TouchableOpacity
+                    disabled={state.buttonLoading}
+                    onPress={saveEditedStock}
                     className={`w-[95%] rounded-xl p-3 flex flex-row items-center ${state.quantity === "0.00" ? 'bg-gray border-2 border-[#fe6500]' : 'bg-[#fe6500]'}`}
                 >
                     <View className="flex-1 items-center">
@@ -448,10 +448,10 @@ const StockMonitorScreen = React.memo(() => {
             {state.user && (
                 <HQSidebar isVisible={state.isSidebarVisible} toggleSidebar={toggleSidebar} userDetails={state.user} />
             )}
-            <TitleHeaderComponent 
-                isParent={true} 
-                userName={state.user?.name || ''} 
-                title={'STOCKS MONITOR'} 
+            <TitleHeaderComponent
+                isParent={true}
+                userName={state.user?.name || ''}
+                title={'STOCKS MONITOR'}
                 onPress={toggleSidebar}
             />
 
@@ -531,13 +531,13 @@ const StockMonitorScreen = React.memo(() => {
             </View>
         </View>
     ), [
-        state.user, 
-        state.isSidebarVisible, 
-        state.activeCategory, 
-        state.criticalCount, 
-        state.search, 
-        state.loading, 
-        state.stocks, 
+        state.user,
+        state.isSidebarVisible,
+        state.activeCategory,
+        state.criticalCount,
+        state.search,
+        state.loading,
+        state.stocks,
         state.loadMore,
         toggleSidebar,
         handleChangeCategory,
@@ -548,9 +548,15 @@ const StockMonitorScreen = React.memo(() => {
 
     return (
         <View style={{ flex: 1 }}>
-            {state.isInputMode ? inputModeView : mainView}
+            <View style={{ display: state.isInputMode ? 'none' : 'flex', flex: 1 }}>
+                {mainView}
+            </View>
+            <View style={{ display: state.isInputMode ? 'flex' : 'none', flex: 1 }}>
+                {inputModeView}
+            </View>
         </View>
     );
+
 });
 
 export default StockMonitorScreen;

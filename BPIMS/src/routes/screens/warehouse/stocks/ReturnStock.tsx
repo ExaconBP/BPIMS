@@ -115,7 +115,7 @@ const ReturnStockScreen = memo(({ route }: Props) => {
             setLoading(true)
             await returnToSupplier(returnStock);
             newReturnStock();
-            navigation.push('WHScreen')
+            navigation.navigate('WHScreen')
             setLoading(false)
         }
     }, [returnStock, newReturnStock]);
@@ -210,7 +210,7 @@ const ReturnStockScreen = memo(({ route }: Props) => {
 
     const renderNormalMode = useMemo(() => (
         <View className="flex flex-1">
-            <TitleHeaderComponent isParent={false} userName={user?.name || ""} title="Return Stock" onPress={() => navigation.push('WHScreen')}></TitleHeaderComponent>
+            <TitleHeaderComponent isParent={false} userName={user?.name || ""} title="Return Stock" onPress={() => navigation.navigate('WHScreen')}></TitleHeaderComponent>
 
             <View className="px-4 w-full">
                 <View className="w-full flex items-center">

@@ -199,7 +199,7 @@ const ItemViewScreen = ({ route }: Props) => {
             }
             const result = await saveItem(formData);
 
-            navigation.push('Items')
+            navigation.navigate('Items')
         }
         finally {
             setLoading(false);

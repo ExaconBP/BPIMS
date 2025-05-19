@@ -224,16 +224,13 @@ export async function generateSalesPDF(from: Date, to: Date, branchId: number) {
                 const timestamp = Date.now();
                 const randomNum = Math.floor(Math.random() * 1_000_000);
                 const filePath = `${RNFS.DownloadDirectoryPath}/test_sales_${timestamp}_${randomNum}.pdf`;
-                console.log(filePath);
                 try {
 
                     await RNFS.writeFile(filePath, base64Data, 'base64');
-                    console.log('scanned')
 
                     await RNFS.scanFile(filePath);
 
                     await FileViewer.open(filePath, { showOpenWithDialog: true });
-                    console.log('opened')
                 } catch (error) {
                     console.error("Error opening file:", error);
                     Alert.alert("Failed to open the pdf file. Please ensure you have a PDF viewer installed.");

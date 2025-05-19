@@ -116,7 +116,7 @@ async def getBranchStocks(categoryId, branchId, page=1, search=""):
     params = [branchId]
 
     if int(categoryId) == 1:
-        sqlQuery += " AND bi.quantity < i.storeCriticalValue"
+        sqlQuery += " AND bi.quantity <= i.storeCriticalValue"
 
     if search:
         sqlQuery += " AND i.name LIKE %s"
@@ -448,7 +448,7 @@ async def getStocksMonitor(categoryId, page=1, search=""):
         branch_selects.append(f"{alias}.quantity as branch_{branch['id']}_qty")
         branch_names.append(f"'Branch: {branch['name']}' as branch_{branch['id']}_name")
         branch_ids.append(f"{alias}.Id as branch_{branch['id']}_id")
-        critical_conditions.append(f"{alias}.quantity < i.storeCriticalValue")
+        critical_conditions.append(f"{alias}.quantity <= i.storeCriticalValue")
 
     sqlQuery = f"""
         SELECT 
@@ -474,7 +474,7 @@ async def getStocksMonitor(categoryId, page=1, search=""):
     params = []
 
     if int(categoryId) == 1:
-        all_critical_conditions = " OR ".join(critical_conditions + ["wh.quantity < i.whCriticalValue"])
+        all_critical_conditions = " OR ".join(critical_conditions + ["wh.quantity <= i.whCriticalValue"])
         sqlQuery += f" AND ({all_critical_conditions})"
 
     if search:
@@ -554,7 +554,7 @@ async def getWHStocksMonitor(categoryId, page=1, search=""):
         branch_selects.append(f"{alias}.quantity as branch_{branch['id']}_qty")
         branch_selects.append(f"b{branch['id']}.branchId as branch_{branch['id']}_id")
         branch_ids.append(f"{alias}.Id as branch_{branch['id']}_item_id")
-        critical_conditions.append(f"{alias}.quantity < i.storeCriticalValue")
+        critical_conditions.append(f"{alias}.quantity <= i.storeCriticalValue")
 
     sqlQuery = f"""
         SELECT 

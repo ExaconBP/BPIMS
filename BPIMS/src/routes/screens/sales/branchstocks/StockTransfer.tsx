@@ -145,7 +145,7 @@ export default function StockTransferScreen({ route }: Props) {
                 await saveTransferStock(stockTransfer)
                 newStockInput();
                 await getStockInputHistory();
-                navigation.push('BranchStock')
+                navigation.navigate('BranchStock')
                 setLoading(false)
             }
         }

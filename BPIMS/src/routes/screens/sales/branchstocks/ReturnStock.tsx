@@ -104,7 +104,7 @@ const ReturnStockScreen = memo(({ route }: Props) => {
             setLoading(true)
             await returnToWH(returnStock);
             newReturnStock();
-            navigation.push('BranchStock')
+            navigation.navigate('BranchStock')
             setLoading(false)
         }
     }, [returnStock, newReturnStock]);

@@ -118,7 +118,7 @@ export default function StockInputScreen({ route }: Props) {
                 setLoading(true)
                 await createStockInput(stockInput)
                 newStockInput();
-                navigation.push('BranchStock');
+                navigation.navigate('BranchStock');
                 setLoading(false)
             }
         }

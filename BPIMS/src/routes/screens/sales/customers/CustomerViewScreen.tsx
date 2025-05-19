@@ -228,7 +228,7 @@ const CustomerViewScreen = React.memo(({ route }: Props) => {
                     } as any);
                 }
                 const result = await saveCustomer(formData);
-                navigation.push('Customer')
+                navigation.navigate('Customer')
             }
         } finally {
             setLoading(false);
@@ -254,7 +254,7 @@ const CustomerViewScreen = React.memo(({ route }: Props) => {
                                 setLoading(true);
                                 const response = await deleteCustomer(id);
                                 if (response && response.isSuccess) {
-                                    navigation.push('Customer');
+                                    navigation.navigate('Customer');
                                 }
                             }
                             finally {
