@@ -191,7 +191,7 @@ const SupplierViewScreen = React.memo(({ route }: Props) => {
             setLoaderMessage('Saving supplier...');
             if (supplier) {
                 await saveSupplier(supplier);
-                navigation.push('SupplierList')
+                navigation.navigate('SupplierList')
             }
         }
         finally {
@@ -214,7 +214,7 @@ const SupplierViewScreen = React.memo(({ route }: Props) => {
                                 setLoading(true);
                                 const response = await removeSupplier(id);
                                 if (response && response.isSuccess) {
-                                    navigation.push('SupplierList');
+                                    navigation.navigate('SupplierList');
                                 }
                             }
                             finally {

@@ -1,6 +1,6 @@
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
@@ -19,69 +19,83 @@ import { capitalizeFirstLetter, formatTransactionDate } from '../../../utils/dat
 
 type Props = NativeStackScreenProps<SalesReportHQParamList, 'TransactionList'>;
 
+const pageSize = 30;
+
+function useDebounce<T>(value: T, delay: number): T {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+        return () => clearTimeout(handler);
+    }, [value, delay]);
+
+    return debouncedValue;
+}
+
 const TransactionListScreen = React.memo(({ route }: Props) => {
+    const branches: ObjectDto[] = route.params.branches;
+    const user: UserDetails = route.params.user;
     const [transactions, setTransactions] = useState<DailyTransactionDto[]>(route.params.transactions);
-    const branches: ObjectDto[] = route.params.branches
-    const user: UserDetails = route.params.user
-    const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
+    const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
     const [hasMoreData, setHasMoreData] = useState(true);
     const [activeBranch, setActiveBranch] = useState<number | null>(null);
 
+    const prevBranchRef = useRef<number | null>(null);
     const inputRef = useRef<TextInput>(null);
     const navigation = useNavigation<NativeStackNavigationProp<SalesReportHQParamList>>();
+    const debouncedSearch = useDebounce(search, 300);
 
-    const handleSearchClick = useCallback(() => {
-        inputRef.current?.focus();
-    }, []);
-
-    useFocusEffect(
-        useCallback(() => {
-            getTransactionHistory(activeBranch, page, search);
-        }, [activeBranch, page, search])
-    );
-
-    const getTransactionHistory = useCallback(async (branchId: number | null, page: number, search: string) => {
+    const fetchTransactions = useCallback(async (branchId: number | null, page: number, searchText: string) => {
         try {
-            if (!loadingMore)
-                setLoading(true);
-            const response = await getAllTransactionHistoryHQ(branchId, page, search.trim());
-            if (response.isSuccess) {
-                let tr = response.data;
-                setTransactions(prev => page === 1 ? tr : [...prev, ...tr]);
-                if (tr.length === 0 || transactions.length + tr.length >= (response.totalCount || 0)) {
-                    setHasMoreData(false);
-                } else {
-                    setHasMoreData(true);
-                }
-            } else {
-                setTransactions([])
-            }
+            if (!loadingMore) setLoading(true);
+
+            const response = await getAllTransactionHistoryHQ(branchId, page, searchText.trim());
+            const newTransactions = response.isSuccess ? response.data : [];
+            const total = response.totalCount || 0;
+
+            setTransactions(prev => page === 1 ? newTransactions : [...prev, ...newTransactions]);
+
+            const reachedEnd = newTransactions.length < pageSize || (total && page * pageSize >= total);
+            setHasMoreData(!reachedEnd);
+        } catch (err) {
+            console.error(err);
+            setHasMoreData(false);
+            if (page === 1) setTransactions([]);
+        } finally {
             setLoading(false);
             setLoadingMore(false);
         }
-        finally {
-            setLoading(false);
-            setLoadingMore(false);
+    }, [loadingMore]);
+
+    // Branch Change Effect
+    useEffect(() => {
+        if (prevBranchRef.current !== activeBranch) {
+            prevBranchRef.current = activeBranch;
+            setTransactions([]);
+            setPage(1);
+            fetchTransactions(activeBranch, 1, debouncedSearch);
         }
-    }, [activeBranch, loadingMore, transactions.length]);
+    }, [activeBranch]);
+
+    // Search/Page Change Effect
+    useEffect(() => {
+        if (prevBranchRef.current === activeBranch) {
+            fetchTransactions(activeBranch, page, debouncedSearch);
+        }
+    }, [debouncedSearch, page]);
+
+    const handleSearchClick = () => inputRef.current?.focus();
 
     const loadMoreTransactions = () => {
-        if (hasMoreData && !loadingMore) {
+        if (hasMoreData && !loadingMore && !loading) {
             setLoadingMore(true);
             setPage(prev => prev + 1);
         }
-    };
-
-    const renderFooter = () => {
-        if (!loadingMore) return null;
-        return (
-            <View className="py-2">
-                <ActivityIndicator size="small" color="#fe6500" />
-            </View>
-        );
     };
 
     const renderItem = useCallback(({ item }: { item: DailyTransactionDto }) => (
@@ -92,7 +106,7 @@ const TransactionListScreen = React.memo(({ route }: Props) => {
             <View className="flex-row justify-between items-center mb-1">
                 <View className="flex-row items-center space-x-2">
                     <Text className="text-gray-800 font-medium">{item.slipNo || "N/A"}</Text>
-                    {item?.isVoided && (
+                    {item.isVoided && (
                         <View className="px-2 py-0.5 bg-red-100 rounded-sm">
                             <Text className="text-red-600 text-xs font-medium">Voided</Text>
                         </View>
@@ -114,47 +128,46 @@ const TransactionListScreen = React.memo(({ route }: Props) => {
                 <Text className="text-gray-600 text-sm font-medium mr-1">
                     {item.items.length} {item.items.length === 1 ? 'item' : 'items'}:
                 </Text>
-                <Text
-                    className="text-gray-500 text-sm flex-1"
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                >
-                    {item.items.map((item) => item.itemName).join(', ')}
+                <Text className="text-gray-500 text-sm flex-1" numberOfLines={1} ellipsizeMode="tail">
+                    {item.items.map(i => i.itemName).join(', ')}
                 </Text>
             </View>
         </TouchableOpacity>
     ), []);
 
+    const renderFooter = () => loadingMore && (
+        <View className="py-2">
+            <ActivityIndicator size="small" color="#fe6500" />
+        </View>
+    );
+
+    const branchTabs = useMemo(() => [
+        { id: null, name: "All" },
+        ...branches.filter(b => b.id !== 0),
+    ], [branches]);
+
     return (
-        <View className='flex flex-1'>
-            <TitleHeaderComponent isParent={false} userName={user?.name || ""} title="All Transactions" onPress={() => navigation.goBack()}></TitleHeaderComponent>
+        <View className="flex flex-1">
+            <TitleHeaderComponent isParent={false} userName={user?.name || ""} title="All Transactions" onPress={() => navigation.goBack()} />
 
             <View className="w-full justify-center items-center bg-gray relative">
                 <View className="w-full flex-row justify-between items-center">
-                    {[
-                        { id: null, name: "All" },
-                        ...branches.filter((b) => b.id !== 0),
-                    ].map((b) => (
+                    {branchTabs.map(b => (
                         <TouchableOpacity
                             onPress={() => setActiveBranch(b.id)}
                             key={b.id ?? "all"}
                             className={`${activeBranch === b.id ? 'border-b-4 border-yellow-500' : ''} flex-1 justify-center items-center p-2`}
                         >
-                            <View className="flex-row items-center space-x-1">
-                                <Text
-                                    className={`${activeBranch === b.id ? 'text-gray-900' : 'text-gray-500'} text-[10px] font-medium text-center`}
-                                >
-                                    {b.name.toUpperCase()}
-                                </Text>
-
-                            </View>
+                            <Text className={`${activeBranch === b.id ? 'text-gray-900' : 'text-gray-500'} text-[10px] font-medium text-center`}>
+                                {b.name.toUpperCase()}
+                            </Text>
                         </TouchableOpacity>
                     ))}
                 </View>
-
-                <View className="w-full h-[2px] bg-gray-500"></View>
+                <View className="w-full h-[2px] bg-gray-500" />
             </View>
-            <View className="justify-center items-center bg-gray relative mb-6 pb-16">
+
+            <View className="justify-center items-center bg-gray relative mb-6 pb-24">
                 <View className="flex flex-row w-full bg-gray-300 py-1 px-3 items-center">
                     <View className="flex-row items-center rounded-md px-2 flex-1">
                         <TouchableOpacity className="mr-2" onPress={handleSearchClick}>
@@ -166,7 +179,6 @@ const TransactionListScreen = React.memo(({ route }: Props) => {
                             placeholderTextColor="#8a8a8a"
                             value={search}
                             onChangeText={(text) => {
-                                setLoading(true)
                                 setSearch(text);
                                 setPage(1);
                             }}
@@ -176,6 +188,7 @@ const TransactionListScreen = React.memo(({ route }: Props) => {
                         />
                     </View>
                 </View>
+
                 {loading ? (
                     <View className="py-2">
                         <ActivityIndicator size="small" color="#fe6500" />
@@ -190,10 +203,14 @@ const TransactionListScreen = React.memo(({ route }: Props) => {
                         onEndReached={loadMoreTransactions}
                         onEndReachedThreshold={0.5}
                         ListFooterComponent={renderFooter}
+                        initialNumToRender={10}
+                        maxToRenderPerBatch={10}
+                        removeClippedSubviews
+                        windowSize={7}
                     />
                 )}
             </View>
-        </View >
+        </View>
     );
 });
 

@@ -247,7 +247,7 @@ const CustomerViewScreen = React.memo(({ route }: Props) => {
                                     setLoading(true);
                                     const response = await deleteCustomer(customer.id);
                                     if (response && response.isSuccess) {
-                                        navigation.push('Customer');
+                                        navigation.navigate('Customer');
                                     }
                                 }
                                 finally {

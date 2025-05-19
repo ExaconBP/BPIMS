@@ -100,7 +100,7 @@ const BranchViewScreen = React.memo(({ route }: Props) => {
             if (branch) {
                 setButtonLoading(true);
                 await saveBranch(branch.id, branch.name)
-                navigation.push('Branches')
+                navigation.navigate('Branches')
                 setButtonLoading(false);
             }
         }
@@ -131,7 +131,7 @@ const BranchViewScreen = React.memo(({ route }: Props) => {
                             text: "Confirm",
                             onPress: async () => {
                                 await setBranchInactive(branch.id);
-                                navigation.push('Branches');
+                                navigation.navigate('Branches');
                                 setButtonLoading(false);
                             }
                         }

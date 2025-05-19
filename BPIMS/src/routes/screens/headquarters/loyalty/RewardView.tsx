@@ -79,7 +79,7 @@ const RewardViewScreen = memo(({ route }: Props) => {
             }
             initializeCard();
             setLoading(false)
-            navigation.push('LoyaltyScreen')
+            navigation.navigate('LoyaltyScreen')
         }
         finally {
             setLoading(false)
@@ -94,7 +94,7 @@ const RewardViewScreen = memo(({ route }: Props) => {
             }
             initializeCard();
             setLoading(false)
-            navigation.push('LoyaltyScreen')
+            navigation.navigate('LoyaltyScreen')
         }
         finally {
             setLoading(false)

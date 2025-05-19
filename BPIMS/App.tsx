@@ -6,6 +6,7 @@ import SalesNavigator from "./src/routes/screens/sales/SalesStack";
 import HQNavigator from "./src/routes/screens/headquarters/HeadquarterStack";
 import WareHouseNavigator from "./src/routes/screens/warehouse/WarehouseStack";
 import CentralNavigator from "./src/routes/screens/central/CentralStack";
+import './gesture-handler';
 
 const RootStack = createNativeStackNavigator();
 

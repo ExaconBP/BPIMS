@@ -93,7 +93,7 @@ const LoyaltyViewScreen = memo(({ route }: Props) => {
                 await saveLoyaltyCard(loyaltyCard);
             }
             initializeCard();
-            navigation.push('LoyaltyScreen')
+            navigation.navigate('LoyaltyScreen')
         } finally {
             setLoading(false);
         }
@@ -106,7 +106,7 @@ const LoyaltyViewScreen = memo(({ route }: Props) => {
                 await deleteLoyaltyCard(loyaltyCard.id);
             }
             initializeCard();
-            navigation.push('LoyaltyScreen')
+            navigation.navigate('LoyaltyScreen')
         } finally {
             setLoading(false);
         }

@@ -21,7 +21,7 @@ export default function StockHistory({ route }: Props) {
     return (
         <View className="flex flex-1">
             <View className="flex flex-1">
-                <TitleHeaderComponent isParent={true} title='STOCK HISTORY' userName={user.name} onPress={() => navigation.push('StockInput', { item, user })}
+                <TitleHeaderComponent isParent={true} title='STOCK HISTORY' userName={user.name} onPress={() => navigation.navigate('StockInput', { item, user })}
                 ></TitleHeaderComponent>
                 <View className="px-4 w-full mt-6">
                     <View className="w-full flex items-center">
