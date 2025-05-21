@@ -26,6 +26,7 @@ export type CartItems = {
     sellByUnit: boolean;
     branchQty: number;
     branchName: string;
+    branchItemId: number;
 }
 
 export type Cart = {
@@ -34,6 +35,7 @@ export type Cart = {
     deliveryFee: number;
     subTotal: number;
     customerName: string;
+    customerId: number;
 }
 
 export type CartDto = {

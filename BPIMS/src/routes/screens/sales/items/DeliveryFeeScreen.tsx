@@ -10,27 +10,32 @@ import {
 import NumericKeypad from '../../../../components/NumericKeypad';
 import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
 import { ItemStackParamList } from '../../../navigation/navigation';
-import { updateDeliveryFee } from '../../../services/salesRepo';
+import { useCartStore } from '../../../services/cartStore';
 
 type Props = NativeStackScreenProps<ItemStackParamList, 'DeliveryFee'>;
 
 const DeliveryFeeScreen = React.memo(({ route }: Props) => {
-  const deliveryFee = route.params.deliveryFee;
   const user = route.params.user;
   const [isLoading, setLoading] = useState<boolean>(false);
-  const [fee, setFee] = useState<string>(Number(deliveryFee).toFixed(2) || '0.00');
+  const {
+    cart,
+    setCart
+  } = useCartStore();
+  const [fee, setFee] = useState<string>(Number(cart?.deliveryFee).toFixed(2) || '0.00');
   const navigation = useNavigation<NativeStackNavigationProp<ItemStackParamList>>();
 
   const applyFee = useCallback(async () => {
     try {
       setLoading(true);
-      await updateDeliveryFee(Number(fee));
-      navigation.navigate('Cart', { user });
+      if (cart) {
+        setCart({ ...cart, deliveryFee: Number(fee) });
+      }
+      navigation.goBack();
     }
     finally {
       setLoading(false);
     }
-  }, [fee, navigation]);
+  }, [fee, navigation, cart, setCart]);
 
   const handleKeyPress = useCallback((key: string) => {
     let current = fee.replace('.', '');

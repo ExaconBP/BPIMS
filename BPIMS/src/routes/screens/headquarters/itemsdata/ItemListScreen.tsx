@@ -1,4 +1,4 @@
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -13,6 +13,21 @@ import { ItemHQDto } from '../../../types/itemType';
 import { CategoryDto } from '../../../types/salesType';
 import { UserDetails } from '../../../types/userType';
 import { getUserDetails } from '../../../utils/auth';
+
+const pageSize = 30;
+
+function useDebounce<T>(value: T, delay: number): T {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+        return () => clearTimeout(handler);
+    }, [value, delay]);
+
+    return debouncedValue;
+}
 
 const ItemListScreen = () => {
     const [categories, setCategories] = useState<CategoryDto[]>([]);
@@ -29,7 +44,7 @@ const ItemListScreen = () => {
     const [isSidebarVisible, setSidebarVisible] = useState(false);
     const inputRef = useRef<TextInput>(null);
     const navigation = useNavigation<NativeStackNavigationProp<ItemsHQParamList>>();
-
+    const debouncedSearch = useDebounce(search, 300);
     const newItem: ItemHQDto = {
         id: 0,
         name: "",
@@ -72,15 +87,10 @@ const ItemListScreen = () => {
         getCategoryList();
     }, []);
 
-    useFocusEffect(
-        useCallback(() => {
-            getItems(activeCategory, page, search);
-        }, [])
-    );
-
     useEffect(() => {
-        getItems(activeCategory, page, search);
-    }, [activeCategory, page, search]);
+        getItems(activeCategory, page, debouncedSearch);
+    }, [activeCategory, page, debouncedSearch]);
+
 
     const getItems = async (categoryId: number, page: number, search: string) => {
         try {
@@ -213,10 +223,7 @@ const ItemListScreen = () => {
                             value={search}
                             onChangeText={(text) => {
                                 setSearch(text);
-                                setLoading(true)
                                 setPage(1);
-                                setLoadingMore(false)
-                                setProducts([])
                             }}
                             ref={inputRef}
                             selectionColor="orange"
@@ -243,6 +250,8 @@ const ItemListScreen = () => {
                             contentContainerStyle={{ paddingBottom: 20 }}
                             onEndReached={loadMoreCategories}
                             onEndReachedThreshold={0.5}
+                            initialNumToRender={3}
+                            windowSize={4}
                             ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color="#fe6500" /> : null}
                         />
                     </View>

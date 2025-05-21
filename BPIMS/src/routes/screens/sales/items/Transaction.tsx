@@ -16,13 +16,21 @@ import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
 import { ItemStackParamList } from '../../../navigation/navigation';
 import { changeReward, processPayment, saveCustomerItemReward } from '../../../services/salesRepo';
 import { ItemDto, LoyaltyItemDto, TransactionDto, TransactionItemsDto } from '../../../types/salesType';
+import { useCartStore } from '../../../services/cartStore';
 
 type Props = NativeStackScreenProps<ItemStackParamList, 'Transaction'>;
 
 const TransactionScreen = React.memo(({ route }: Props) => {
-    const { user, cart, total } = route.params;
+    const { user } = route.params;
     const [isLoading, setLoading] = useState<boolean>(false);
-    const [payment, setPayment] = useState<string>(Number(total).toFixed(2).toString());
+    const {
+        cartItems,
+        subTotal,
+        totalAmount,
+        cart,
+        clearCart,
+    } = useCartStore();
+    const [payment, setPayment] = useState<string>(Number(totalAmount).toFixed(2).toString());
     const [done, setDone] = useState<boolean>(false);
     const [transaction, setTransaction] = useState<TransactionDto>();
     const [items, setTransactionItems] = useState<TransactionItemsDto[]>([]);
@@ -41,22 +49,24 @@ const TransactionScreen = React.memo(({ route }: Props) => {
     }, []);
 
     const change = useMemo(() => {
-        return Number(payment) - total;
-    }, [payment, total]);
+        return Number(payment) - totalAmount;
+    }, [payment, totalAmount]);
 
     const applyPayment = useCallback(async () => {
         try {
-            if (cart && payment) {
+            if (payment) {
                 setLoading(true);
-                const result = await processPayment(Number(payment));
-                if (result && result.isSuccess) {
-                    setDone(true);
-                    setTransaction(result.data.transaction);
-                    setTransactionItems(result.data.transactionItems);
-                    setLoyaltyItem(result.data.loyaltyItemDto);
-                } else {
-                    if (result)
-                        Alert.alert('An Error Occurred', result.message);
+                if (cart) {
+                    const result = await processPayment(cart, cartItems, subTotal, totalAmount, Number(payment));
+                    if (result && result.isSuccess) {
+                        setDone(true);
+                        setTransaction(result.data.transaction);
+                        setTransactionItems(result.data.transactionItems);
+                        setLoyaltyItem(result.data.loyaltyItemDto);
+                    } else {
+                        if (result)
+                            Alert.alert('An Error Occurred', result.message);
+                    }
                 }
                 setLoading(false);
             }
@@ -64,7 +74,7 @@ const TransactionScreen = React.memo(({ route }: Props) => {
         finally {
             setLoading(false);
         }
-    }, [cart, payment]);
+    }, [payment]);
 
     const clickReceipt = useCallback(() => {
         if (transaction) {
@@ -149,7 +159,7 @@ const TransactionScreen = React.memo(({ route }: Props) => {
                                             </Text>
                                         </View>
                                     </View>
-                                    {Number(payment) >= total && (
+                                    {Number(payment) >= totalAmount && (
                                         <Text className="text-sm font-bold text-gray-600 px-3 mt-4">
                                             Change: ₱ {change.toFixed(2)}
                                         </Text>
@@ -159,17 +169,17 @@ const TransactionScreen = React.memo(({ route }: Props) => {
                             <View className="absolute bottom-0 w-full items-center pb-3 pt-2">
                                 <NumericKeypad onPress={handleKeyPress} onBackspace={handleBackspace} />
                                 <TouchableOpacity
-                                    disabled={Number(payment) < total}
+                                    disabled={Number(payment) < totalAmount}
                                     onPress={applyPayment}
-                                    className={`w-[95%] rounded-xl p-3 flex flex-row items-center ${Number(payment) < total ? 'bg-gray border-2 border-[#fe6500]' : 'bg-[#fe6500]'
+                                    className={`w-[95%] rounded-xl p-3 flex flex-row items-center ${Number(payment) < totalAmount ? 'bg-gray border-2 border-[#fe6500]' : 'bg-[#fe6500]'
                                         }`}
                                 >
                                     <View className="flex-1 items-center">
                                         <Text
-                                            className={`text-lg font-bold ${Number(payment) < total ? 'text-[#fe6500]' : 'text-white'
+                                            className={`text-lg font-bold ${Number(payment) < totalAmount ? 'text-[#fe6500]' : 'text-white'
                                                 }`}
                                         >
-                                            NEXT
+                                            PAY
                                         </Text>
                                     </View>
                                 </TouchableOpacity>
@@ -261,7 +271,10 @@ const TransactionScreen = React.memo(({ route }: Props) => {
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     className="w-[95%] rounded-xl p-4 items-center bg-[#fe6500]"
-                                    onPress={() => navigation.navigate('Item')}
+                                    onPress={() => {
+                                        clearCart();
+                                        navigation.navigate('Item');
+                                    }}
                                 >
                                     <Text className="font-bold text-lg text-white">START NEW</Text>
                                 </TouchableOpacity>

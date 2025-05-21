@@ -1,4 +1,4 @@
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { debounce } from 'lodash';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -10,12 +10,28 @@ import NumericKeypad from '../../../../components/NumericKeypad';
 import Sidebar from '../../../../components/Sidebar';
 import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
 import { ItemStackParamList } from '../../../navigation/navigation';
+import { useCartStore } from '../../../services/cartStore';
 import { getItemImage } from '../../../services/itemsHQRepo';
-import { addItemToCart, getCart, getCategories, getProducts } from '../../../services/salesRepo';
-import { CartItems, CategoryDto, ItemDto } from '../../../types/salesType';
+import { getCart, getCategories, getProducts } from '../../../services/salesRepo';
+import { CategoryDto, ItemDto } from '../../../types/salesType';
 import { UserDetails } from '../../../types/userType';
 import { getUserDetails } from '../../../utils/auth';
 import { truncateShortName } from '../../../utils/dateFormat';
+
+const pageSize = 30;
+
+function useDebounce<T>(value: T, delay: number): T {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+        return () => clearTimeout(handler);
+    }, [value, delay]);
+
+    return debouncedValue;
+}
 
 const ItemScreen = () => {
     const [categories, setCategories] = useState<CategoryDto[]>([]);
@@ -26,10 +42,8 @@ const ItemScreen = () => {
     const [loading, setLoading] = useState(false);
     const [loadingCategory, setLoadingCategory] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
-    const [totalPrice, setTotalPrice] = useState(0);
     const [search, setSearch] = useState("");
     const [hasMoreData, setHasMoreData] = useState(true);
-    const [totalCartItems, setTotalCartItems] = useState(0);
     const [user, setUser] = useState<UserDetails>();
     const [isSidebarVisible, setSidebarVisible] = useState(false);
     const [isInputMode, setInputMode] = useState(false);
@@ -37,9 +51,16 @@ const ItemScreen = () => {
     const [selectedItem, setSelectedItem] = useState<ItemDto>();
     const [buttonLoading, setButtonLoading] = useState<boolean>(false);
     const [message, setMessage] = useState<string | null>(null);
-    const [cartItems, setCartItems] = useState<CartItems[]>([]);
-    const [pendingItems, setPendingItems] = useState<Set<number>>(new Set());
     const [numberItems, setNumberItems] = useState<number>(1);
+    const debouncedSearch = useDebounce(search, 300);
+    const {
+        cartItems,
+        totalCartItems,
+        subTotal,
+        addItem,
+        clearCart,
+        setCart
+    } = useCartStore();
 
     const cartScale = useRef(new Animated.Value(1)).current;
 
@@ -66,22 +87,22 @@ const ItemScreen = () => {
     }, []);
 
     useEffect(() => {
-        const initializeUserAndCart = async () => {
+        const fetchUser = async () => {
             try {
-                const [userResponse, cartResponse] = await Promise.all([
-                    getUserDetails(),
-                    getCart()
-                ]);
+                const userResponse = await getUserDetails();
+                const cart = await getCart();
+                if (cart) {
+                    setCart(cart.data.cart);
+                }
                 setUser(userResponse);
-                setCartItems(cartResponse.data.cartItems);
             } catch (error) {
-                console.error("Initialization failed:", error);
+                console.error("Failed to fetch user details:", error);
             }
         };
 
-        initializeUserAndCart();
+        fetchUser();
+        clearCart();
     }, []);
-
 
     useEffect(() => {
         const getCategoryList = async () => {
@@ -103,12 +124,18 @@ const ItemScreen = () => {
         getCategoryList();
     }, []);
 
-    useFocusEffect(
-        useCallback(() => {
-            if (!user) return;
-            getItems(activeCategory, page, search);
-        }, [activeCategory, page, search, user])
-    );
+    useEffect(() => {
+        if (!user) return;
+
+        setPage(1);
+    }, [user]);
+
+    useEffect(() => {
+        if (!user || page < 1) return;
+
+        getItems(activeCategory, page, debouncedSearch);
+    }, [activeCategory, page, debouncedSearch, user]);
+
 
     const getItems = useCallback(async (categoryId: number, page: number, search: string) => {
         try {
@@ -138,7 +165,7 @@ const ItemScreen = () => {
                 setProducts(prevProducts => page === 1 ? newProducts : [...prevProducts, ...newProducts]);
 
                 const total = response.totalCount ?? newProducts.length;
-                const hasMore = newProducts.length === 30 && (page * 30) < total;
+                const hasMore = newProducts.length === pageSize && (page * pageSize) < total;
                 setHasMoreData(hasMore);
             } else {
                 setProducts([]);
@@ -149,66 +176,48 @@ const ItemScreen = () => {
             setLoading(false);
             setLoadingMore(false);
         }
-    }, [activeCategory, lastCategory, loadingMore, user, cartItems]);
+    }, [activeCategory, lastCategory, loadingMore, user, cartItems, page]);
 
     const loadMoreCategories = useCallback(() => {
-        if (!loading && !loadingMore && hasMoreData) {
-            setLastCategory(activeCategory);
-            setLoadingMore(true);
-            setPage(prevPage => prevPage + 1);
-        }
-    }, [loading, loadingMore, hasMoreData, activeCategory]);
+        if (!user || loading || loadingMore || !hasMoreData) return;
 
-    const getUserAndCart = useCallback(async () => {
-        const result = await getCart();
-        setTotalCartItems(result.totalCount ?? 0);
-        setTotalPrice(parseFloat(result.data.cart.subTotal.toString()));
-    }, []);
+        setLastCategory(activeCategory);
+        setLoadingMore(true);
+        setPage(prevPage => prevPage + 1);
+    }, [user, loading, loadingMore, hasMoreData, activeCategory]);
 
-    useFocusEffect(
-        useCallback(() => {
-            getUserAndCart();
-        }, [getUserAndCart])
-    );
-    
-    const debouncedAddToCart = useCallback(debounce(async (item: ItemDto) => {
-        if (!item.sellByUnit) {
-            setSelectedItem(item);
-            setTimeout(() => setInputMode(true), 0);
-            return;
-        }
+    const debouncedAddToCart = useCallback(
+        debounce((item: ItemDto) => {
+            if (!item.sellByUnit) {
+                setSelectedItem(item);
+                setTimeout(() => setInputMode(true), 0);
+                return;
+            }
 
-        const itemId = item.id;
-        const updatedQuantity = item.quantity > 0 ? item.quantity - 1 : 0;
+            const itemId = item.id;
+            const updatedQuantity = item.quantity > 0 ? item.quantity - 1 : 0;
 
-        setProducts(prev =>
-            prev.map(i =>
-                i.id === itemId ? { ...i, quantity: updatedQuantity } : i
-            )
-        );
-        setTotalCartItems(prev => prev + 1);
-        setTotalPrice(prev => prev + parseFloat(item.price.toString()));
-        setPendingItems(prev => new Set(prev).add(itemId));
-
-        try {
-            await addItemToCart(itemId, 1);
-        } catch (error) {
-            console.error("Add to cart failed:", error);
             setProducts(prev =>
                 prev.map(i =>
-                    i.id === itemId ? { ...i, quantity: item.quantity } : i
+                    i.id === itemId ? { ...i, quantity: updatedQuantity } : i
                 )
             );
-            setTotalCartItems(prev => Math.max(prev - 1, 0));
-            setTotalPrice(prev => Math.max(prev - parseFloat(item.price.toString()), 0));
-        } finally {
-            setPendingItems(prev => {
-                const copy = new Set(prev);
-                copy.delete(itemId);
-                return copy;
+
+            addItem({
+                id: Math.random(), // temp ID
+                itemId: item.id,
+                price: item.price,
+                quantity: 1,
+                name: item.name,
+                sellByUnit: item.sellByUnit,
+                branchQty: item.quantity,
+                branchName: user?.branchName || "",
+                branchItemId: item.branchItemId || 0
             });
-        }
-    }, 200), []);
+        }, 200),
+        [user?.branchName]
+    );
+
 
     useEffect(() => {
         if (totalCartItems > 0) {
@@ -227,59 +236,42 @@ const ItemScreen = () => {
         }
     }, [totalCartItems, cartScale]);
 
-    const addToCartFaction = useCallback(async () => {
-        try {
-            setButtonLoading(true);
+    const addToCartFaction = useCallback(() => {
+        if (!selectedItem) return;
 
-            if (selectedItem) {
-                const prevTotalCartItems = totalCartItems;
-                const prevTotalPrice = totalPrice;
-                const prevProducts = products;
+        setButtonLoading(true);
+        const addedQty = Number(quantity);
 
-                const updatedItem = {
-                    ...selectedItem,
-                    quantity: selectedItem.quantity > 0 ? selectedItem.quantity - Number(quantity) : 0,
-                };
+        const updatedItem = {
+            ...selectedItem,
+            quantity: selectedItem.quantity > 0
+                ? selectedItem.quantity - addedQty
+                : 0,
+        };
 
-                setProducts(prev =>
-                    prev.map(i =>
-                        i.id === updatedItem.id ? { ...i, quantity: updatedItem.quantity } : i
-                    )
-                );
+        setProducts(prev =>
+            prev.map(i =>
+                i.id === updatedItem.id ? { ...i, quantity: updatedItem.quantity } : i
+            )
+        );
 
-                const toAdd = updatedItem.price * Number(quantity);
-                if (!cartItems.some(item => item.itemId === updatedItem.id)) {
-                    setTotalCartItems(prev => prev + 1);
-                }
+        addItem({
+            id: Math.random(),
+            itemId: updatedItem.id,
+            price: updatedItem.price,
+            quantity: addedQty,
+            name: updatedItem.name,
+            sellByUnit: updatedItem.sellByUnit,
+            branchQty: updatedItem.quantity,
+            branchName: user?.branchName || "",
+            branchItemId: updatedItem.branchItemId || 0
+        });
 
-                setTotalPrice((prev) => prev + parseFloat(toAdd.toString()));
-
-                const debouncedAddToCart = debounce(async () => {
-                    try {
-                        await addItemToCart(selectedItem.id, Number(quantity));
-                        setSelectedItem(undefined);
-                        setQuantity("0.00");
-                        setInputMode(false);
-                        await getUserAndCart();
-                    } catch (error) {
-                        setProducts(prevProducts);
-                        setTotalCartItems(prevTotalCartItems);
-                        setTotalPrice(prevTotalPrice);
-                        Alert.alert('Error', 'Failed to add item to cart. Please try again.');
-                    } finally {
-                        setButtonLoading(false);
-                    }
-                },);
-
-                debouncedAddToCart();
-            } else {
-                setButtonLoading(false);
-            }
-        }
-        finally {
-            setButtonLoading(false);
-        }
-    }, [selectedItem, quantity, totalCartItems, totalPrice, products, getUserAndCart]);
+        setSelectedItem(undefined);
+        setQuantity("0.00");
+        setInputMode(false);
+        setButtonLoading(false);
+    }, [selectedItem, quantity, user?.branchName]);
 
     const handleCategoryClick = useCallback((id: number) => {
         setLastCategory(activeCategory);
@@ -289,23 +281,23 @@ const ItemScreen = () => {
         setPage(1);
     }, [activeCategory]);
 
-    const handleSearchClick = useCallback(() => {
-        inputRef.current?.focus();
-        setPage(1);
-    }, []);
+    const handleSearchClick = () => inputRef.current?.focus();
 
     const handleCartClick = useCallback(() => {
         try {
-            setButtonLoading(true)
+            setButtonLoading(true);
             if (user) {
-                navigation.navigate('Cart', { user: user });
-                setButtonLoading(false)
+                navigation.navigate('Cart', { user });
             }
-        }
-        finally {
-            setButtonLoading(false)
+        } finally {
+            setButtonLoading(false);
         }
     }, [navigation, user]);
+
+
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedSearch]);
 
     const ProductItem = React.memo(({ item, index }: { item: ItemDto; index: number }) => {
         const animatedValue = useRef(new Animated.Value(0)).current;
@@ -495,24 +487,22 @@ const ItemScreen = () => {
                         className="bg-gray mt-1 ml-2"
                         onPress={toggleSidebar}
                     >
-                        <Menu width={20} height={20} color="#fe6500" />
+                        <Menu width={24} height={26} color="#fe6500" />
                     </TouchableOpacity>
                     <View className=" mr-1 flex-row items-center w-[60%] sm:w-[75%] md:w-[80%] rounded-full border border-[#fe6500]">
                         <TextInput
-                            className="flex-1 h-6 px-2 py-1 text-black"
-                            placeholder="Search..."
+                            className="flex-1 h-8 text-black p-2"
+
+                            placeholder="Search Item ..."
                             placeholderTextColor="#8a8a8a"
                             value={search}
                             onChangeText={(text) => {
-                                setLoading(true)
                                 setSearch(text);
-                                setProducts([]);
-                                setHasMoreData(false);
-                                setPage(1);
                             }}
-                            onFocus={() => Keyboard.isVisible()}
                             ref={inputRef}
+                            onFocus={() => Keyboard.isVisible()}
                             selectionColor="orange"
+                            returnKeyType="search"
                         />
                         <TouchableOpacity className='mr-2' onPress={handleSearchClick} >
                             <Search width={15} height={15} color="black" />
@@ -521,7 +511,7 @@ const ItemScreen = () => {
                     </View>
                     <View className=" items-center"
                     >
-                        <View className="px-2 py-1 bg-[#fe6500] rounded-lg">
+                        <View className="px-2 py-2 bg-[#fe6500] rounded-full">
                             <Text className="text-white" style={{ fontSize: 12 }}>
                                 {truncateShortName(user?.name ? user.name.split(' ')[0].toUpperCase() : '')}
                             </Text>
@@ -583,7 +573,7 @@ const ItemScreen = () => {
                                     <Text className={`font-bold text-lg ${totalCartItems === 0 ? 'text-[#fe6500]' : 'text-white'}`}>
                                         {totalCartItems === 0
                                             ? 'No Items'
-                                            : `${totalCartItems} ${totalCartItems > 1 ? 'Items' : 'Item'}`} = ₱ {totalPrice.toFixed(2) || 0}
+                                            : `${totalCartItems} ${totalCartItems > 1 ? 'Items' : 'Item'}`} = ₱ {subTotal.toFixed(2) || 0}
                                     </Text>
                                 </View>
                                 {totalCartItems > 0 && (

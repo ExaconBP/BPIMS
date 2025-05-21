@@ -380,10 +380,15 @@ async def updateDiscount():
 @token_required
 async def processPayment():
     data = await request.json
+    totalAmount = data.get('totalAmount')
+    cart = data.get('cart')
+    cartItems = data.get('cartItems')
+    subTotal = data.get('subTotal')
     amountReceived = data.get('amountReceived')
 
-    response = await transactionService.processPayment(int(request.cart_id), float(amountReceived)) 
+    response = await transactionService.processPayment(int(request.cart_id), cart, cartItems, subTotal, totalAmount, amountReceived) 
     return response
+
 
 @app.route('/processCentralPayment', methods=['POST'])
 @token_required

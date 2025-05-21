@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native';
 import { Trash2 } from 'react-native-feather';
 import BankIcon from '../../../../components/icons/BankIcon';
@@ -8,42 +8,26 @@ import PaypalIcon from '../../../../components/icons/PaypalIcon';
 import StoreIcon from '../../../../components/icons/StoreIcon';
 import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
 import { ItemStackParamList } from '../../../navigation/navigation';
-import { getCart, updateCustomer } from '../../../services/salesRepo';
-import { Cart } from '../../../types/salesType';
+import { useCartStore } from '../../../services/cartStore';
 
 type Props = NativeStackScreenProps<ItemStackParamList, 'Payment'>;
 
 const PaymentScreen = React.memo(({ route }: Props) => {
     const user = route.params.user;
+    const {
+        totalAmount,
+        cart,
+        setCart
+    } = useCartStore();
     const [isLoading, setLoading] = useState<boolean>(false);
-    const [total, setTotal] = useState<number>(0);
-    const [cart, setCart] = useState<Cart>();
+    const [total, setTotal] = useState<number>(totalAmount);
     const navigation = useNavigation<NativeStackNavigationProp<ItemStackParamList>>();
 
-    const getCartItems = useCallback(async () => {
-        try {
-            setLoading(true);
-            const result = await getCart();
-            const c = result.data.cart;
-            setCart(c);
-            const total = Number(c.subTotal) - Number(c.discount) + Number(c.deliveryFee);
-            setTotal(total);
-            setLoading(false);
-        }
-        finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        getCartItems();
-    }, [getCartItems]);
-
     const handleNext = useCallback(() => {
-        if (cart && user) {
-            navigation.navigate('Transaction', { cart, user, total });
+        if (user) {
+            navigation.navigate('Transaction', { user });
         }
-    }, [cart, user, navigation, total]);
+    }, [user, navigation, total]);
 
     const handleAddCustomer = useCallback(() => {
         navigation.navigate('CustomerList', { user });
@@ -51,12 +35,10 @@ const PaymentScreen = React.memo(({ route }: Props) => {
 
     const removeCustomerName = useCallback(async () => {
         if (cart) {
-            await updateCustomer(null);
-            await getCartItems();
-        }
-    }, [cart, getCartItems]);
+            setCart({ ...cart, customerName: "", customerId: 0 });
 
-    const formattedTotal = useMemo(() => total.toFixed(2), [total]);
+        }
+    }, [cart, setCart]);
 
     if (isLoading) {
         return (
@@ -75,7 +57,7 @@ const PaymentScreen = React.memo(({ route }: Props) => {
                 <View className="w-full h-[2px] bg-gray-500 mb-2"></View>
                 <View className="items-center w-[90%] mt-4 h-[60%] sm:h-[65%] md:h-[70%]">
                     <View className="flex flex-row items-center">
-                        <Text className="text-5xl text-black px-3 mt-8">₱ {formattedTotal}</Text>
+                        <Text className="text-5xl text-black px-3 mt-8">₱ {totalAmount.toFixed(2)}</Text>
                     </View>
                     {cart?.customerName ? (
                         <View className="flex flex-row items-center mt-6">

@@ -95,8 +95,8 @@ const SlipOrderScreen = React.memo(({ route }: Props) => {
                 `[L]<font size='normal'>Change: [R] PHP ${(Number(transaction?.amountReceived || 0) - Number(transaction?.totalAmount || 0)).toFixed(2)}</font>\n` +
                 '[C]--------------------------------\n' +
                 `[C]<font size='normal'>This is an Order Slip.</font>\n` +
-                `[C]<font size='normal'>Ask for Sales Invoice at the Receipt Counter.</font>\n` +
-                '[L]\n';
+                `[C]<font size='normal'>Ask for Sales Invoice at the Receipt Counter.</font>\n`;
+
             await ThermalPrinterModule.printBluetooth({
                 payload: text,
                 printerWidthMM: 48,

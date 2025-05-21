@@ -25,6 +25,21 @@ import { formatQuantity } from '../../../utils/dateFormat';
 
 const CATEGORIES = ['STOCKS', 'LOW STOCK ITEMS', 'STOCK INPUTS'];
 
+const pageSize = 30;
+
+function useDebounce<T>(value: T, delay: number): T {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+        return () => clearTimeout(handler);
+    }, [value, delay]);
+
+    return debouncedValue;
+}
+
 const StockMonitorScreen = React.memo(() => {
     // State management
     const [state, setState] = useState({
@@ -53,10 +68,9 @@ const StockMonitorScreen = React.memo(() => {
     // Memoized values
     const memoizedUser = useMemo(() => state.user, [state.user]);
     const memoizedActiveCategory = useMemo(() => state.activeCategory, [state.activeCategory]);
-    const memoizedSearch = useMemo(() => state.search, [state.search]);
     const memoizedPage = useMemo(() => state.page, [state.page]);
-    const memoizedSuppliers = useMemo(() => state.suppliers, [state.suppliers]);
     const memoizedEditingItem = useMemo(() => state.editingItem, [state.editingItem]);
+    const debouncedSearch = useDebounce(state.search, 300);
 
     // Fetch user details and suppliers on initial mount
     useEffect(() => {
@@ -112,7 +126,7 @@ const StockMonitorScreen = React.memo(() => {
                 const response = await getStocksMonitor(
                     state.activeCategory,
                     state.page,
-                    state.search.trim()
+                    debouncedSearch.trim()
                 );
 
                 if (response.isSuccess) {
@@ -134,7 +148,7 @@ const StockMonitorScreen = React.memo(() => {
         };
 
         fetchItems();
-    }, [memoizedSearch, memoizedActiveCategory, memoizedPage]);
+    }, [debouncedSearch, memoizedActiveCategory, memoizedPage]);
 
     // Callbacks
     const toggleSidebar = useCallback(() => {

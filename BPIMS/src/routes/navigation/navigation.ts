@@ -1,5 +1,5 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Cart, RewardTransactionDto, TransactionDto, TransactionItemsDto } from '../types/salesType';
+import { Cart, CartItems, ItemDto, RewardTransactionDto, TransactionDto, TransactionItemsDto } from '../types/salesType';
 import { ObjectDto, UserDetails } from '../types/userType';
 import { BranchStockDto, ItemStock, StockInputHistoryDto } from '../types/stockType';
 import { ItemHQDto } from '../types/itemType';
@@ -42,10 +42,10 @@ export type HistoryStackParamListHQ = {
 export type ItemStackParamList = {
     Item: undefined;
     Cart: { user: UserDetails };
-    DeliveryFee: { deliveryFee: string, user: UserDetails };
-    Discount: { discount: string, subTotal: number, user: UserDetails };
+    DeliveryFee: { user: UserDetails };
+    Discount: { user: UserDetails };
     Payment: { user: UserDetails };
-    Transaction: { cart: Cart, user: UserDetails, total: number, reward?: RewardTransactionDto };
+    Transaction: { user: UserDetails, reward?: RewardTransactionDto };
     SlipOrder: { transaction: TransactionDto, transactionItems: TransactionItemsDto[], user: UserDetails };
     CustomerList: { user: UserDetails };
     NewCustomer: { user: UserDetails, customers: CustomerListDto[] };
