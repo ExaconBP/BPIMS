@@ -255,88 +255,86 @@ def adjust_transaction_time(transaction_dt):
 
     return transaction_dt
 
-async def processPayment(cartId, amountReceived):
-    cart = await Cart.get_or_none(id=cartId)
+async def processPayment(cartId, cart, cartItems, subTotal, totalAmount, amountReceived):
+    mainCart = await Cart.get_or_none(id=cartId)
+    user = await User.get_or_none(id=mainCart.userId)
+    if not user:
+        return create_response(False, "Invalid user"), 404
 
-    if not cart:
-        return create_response(False, 'Transaction Error. Please Try Again!'), 404
-    
-    user = await User.get_or_none(id=cart.userId)
     branch = await Branch.get_or_none(id=user.branchId)
-    customer = await Customer.get_or_none(id=cart.customerId) if cart.customerId else None
-    cartItems = await CartItems.filter(cartId=cartId)
-    transactionItems = []
+    if not branch:
+        return create_response(False, "Invalid branch"), 404
 
-    total_amount = cart.subTotal
-    if cart.discount:
-        total_amount -= cart.discount  
-    if cart.deliveryFee:
-        total_amount += cart.deliveryFee  
+    customer = None
+    if cart.get("customerId"):
+        customer = await Customer.get_or_none(id=cart["customerId"])
 
-    if total_amount > float(amountReceived):
-        return create_response(False, 'Transaction Error. Please Try Again!'), 404
+    if float(totalAmount) > float(amountReceived):
+        return create_response(False, "Amount received is less than total amount"), 400
 
     slip_no = await generate_slip_no(branch.id)
-    total_profit = 0 
-
     total_cogs = 0
-    for cItem in cartItems:
-        branchItem = await BranchItem.get_or_none(id=cItem.branchItemId)
-        item = await Item.get_or_none(id=branchItem.itemId)
-        if item:
-            total_cogs += item.cost * cItem.quantity  
+    transactionItems = []
 
-    total_profit = total_amount - total_cogs
-    current_time = datetime.now(timezone.utc) + timedelta(hours=8)
-    adjusted_time = adjust_transaction_time(current_time)
+    now = datetime.now(timezone.utc) + timedelta(hours=8)
+    adjusted_time = adjust_transaction_time(now)
 
     transaction = await Transaction.create(
-        amountReceived=float(amountReceived),
-        totalAmount=total_amount,
-        cashierId=cart.userId,
+        amountReceived=amountReceived,
+        totalAmount=totalAmount,
+        cashierId=mainCart.userId,
         slipNo=slip_no,
-        transactionDate = adjusted_time,
-        customerId=cart.customerId,
+        transactionDate=adjusted_time,
+        customerId=cart.get("customerId"),
         branchId=user.branchId,
-        profit=total_profit,
-        discount=cart.discount,
-        deliveryFee=cart.deliveryFee
+        profit=0, 
+        discount=cart.get("discount") or 0,
+        deliveryFee=cart.get("deliveryFee") or 0
     )
 
     for cItem in cartItems:
-        branchItem = await BranchItem.get_or_none(id=cItem.branchItemId)
+        branchItem = await BranchItem.get_or_none(id=cItem["branchItemId"])
         item = await Item.get_or_none(id=branchItem.itemId)
-        if item:    
-            branchItem.quantity -= cItem.quantity
-            itemAmount = item.price * cItem.quantity
 
-            tItem = await TransactionItem.create(
-                transactionId=transaction.id,
-                itemId=branchItem.itemId,
-                quantity=cItem.quantity,
-                amount=itemAmount,
-                isVoided=False
-            )
-            await branchItem.save()
-            transactionItems.append({
-                "id": tItem.id,
-                "itemId": item.id,
-                "name": item.name,
-                "price": item.price,
-                "quantity": tItem.quantity,
-                "amount": tItem.amount,
-                "sellByUnit": item.sellByUnit
-            })
+        if not branchItem or not item:
+            continue
+
+        branchItem.quantity -= Decimal(cItem["quantity"])
+        await branchItem.save()
+
+        itemAmount = item.price * Decimal(cItem["quantity"])
+        total_cogs += item.cost * Decimal(cItem["quantity"])
+
+        tItem = await TransactionItem.create(
+            transactionId=transaction.id,
+            itemId=item.id,
+            quantity=Decimal(cItem["quantity"]),
+            amount=itemAmount,
+            isVoided=False
+        )
+
+        transactionItems.append({
+            "id": tItem.id,
+            "itemId": item.id,
+            "name": item.name,
+            "price": item.price,
+            "quantity": tItem.quantity,
+            "amount": tItem.amount,
+            "sellByUnit": item.sellByUnit
+        })
+
+    transaction.profit = Decimal(totalAmount) - total_cogs
+    await transaction.save()
 
     loyaltyItem = {}
-    done = False
-    if total_amount >= 3000 and customer:
+    if totalAmount >= 3000 and customer:
         loyaltyItem["newProgress"] = True
         customerStages = await LoyaltyCustomer.filter(customerId=customer.id)
         if customerStages:
             done = await customerService.markNextStageDone(customer.id)
         else:
             await customerService.saveLoyaltyCustomer(customer.id)
+
         customer.isLoyalty = True
 
         query = """
@@ -347,51 +345,44 @@ async def processPayment(cartId, amountReceived):
             ORDER BY ls.orderId DESC
             LIMIT 1
         """
-        
         latest_stage = await Tortoise.get_connection("default").execute_query_dict(query, [customer.id])
         if latest_stage:
-            latest_stage = latest_stage[0]  
-            loyaltyItem["currentStage"] = latest_stage["orderId"]
-            loyaltyItem["id"] = latest_stage["lcId"]
-            loyaltyItem["completeLoyalty"] = done
+            latest_stage = latest_stage[0]
+            loyaltyItem.update({
+                "currentStage": latest_stage["orderId"],
+                "id": latest_stage["lcId"],
+                "completeLoyalty": done
+            })
 
-            if latest_stage["itemRewardId"] is not None:
+            if latest_stage["itemRewardId"]:
                 rewardItem = await ItemReward.get_or_none(id=latest_stage["itemRewardId"])
                 if rewardItem:
                     loyaltyItem["hasReward"] = True
                     loyaltyItem["rewardName"] = rewardItem.name
-                    loyaltyItem['isItem'] = True if rewardItem.id == 1 else False
+                    loyaltyItem["isItem"] = rewardItem.id == 1
 
-    transactionRequest = {
+    if customer:
+        (customer.totalOrderAmount) += Decimal(totalAmount)
+        await customer.save()
+
+    response = {
         "transaction": {
             "id": transaction.id,
-            "totalAmount": transaction.totalAmount,
-            "amountReceived": transaction.amountReceived,
-            "slipNo": transaction.slipNo,
-            "transactionDate": transaction.transactionDate,
+            "totalAmount": totalAmount,
+            "amountReceived": amountReceived,
+            "slipNo": slip_no,
+            "transactionDate": adjusted_time,
             "branch": branch.name,
-            "deliveryFee": cart.deliveryFee,
-            "discount": cart.discount,
-            "subTotal": cart.subTotal,
+            "deliveryFee": cart.get("deliveryFee"),
+            "discount": cart.get("discount"),
+            "subTotal": subTotal,
             "customerName": customer.name if customer else None
         },
         "transactionItems": transactionItems,
         "loyaltyItemDto": loyaltyItem
     }
 
-    await CartItems.filter(cartId=cartId).delete()
-    cart.subTotal = 0
-    cart.deliveryFee = None
-    cart.discount = None
-    cart.customerId = None
-    await cart.save()
-
-    if customer:
-        customer.totalOrderAmount += total_amount
-        await customer.save()
-
-    message = 'Payment Successful'
-    return create_response(True, message, transactionRequest), 200
+    return create_response(True, "Payment Successful", response), 200
 
 async def generate_slip_no(branchId: int) -> str:
     now_sg = datetime.now(timezone.utc) + timedelta(hours=8)

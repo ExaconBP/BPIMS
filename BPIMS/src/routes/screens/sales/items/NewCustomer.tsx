@@ -1,4 +1,4 @@
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -17,6 +17,7 @@ import { ItemStackParamList } from '../../../navigation/navigation';
 import { saveCustomer } from '../../../services/customerRepo';
 import { updateCustomer } from '../../../services/salesRepo';
 import { CustomerDto } from '../../../types/customerType';
+import { useCartStore } from '../../../services/cartStore';
 
 type Props = NativeStackScreenProps<ItemStackParamList, 'NewCustomer'>;
 
@@ -42,7 +43,17 @@ const NewCustomerScreen = React.memo(({ route }: Props) => {
   const [nameExists, setNameExists] = useState<boolean>(false);
   const [isValid, setIsValid] = useState<boolean>(false);
   const MAX_FILE_SIZE = 2 * 1024 * 1024;
-
+  const {
+    cartItems,
+    totalCartItems,
+    subTotal,
+    cart,
+    updateItem,
+    removeItem,
+    clearCart,
+    recalculateTotals,
+    setCart
+  } = useCartStore();
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
       setKeyboardVisible(true);
@@ -154,15 +165,33 @@ const NewCustomerScreen = React.memo(({ route }: Props) => {
           } as any);
         }
         const result = await saveCustomer(formData);
-        if (result)
-          await updateCustomer(result.data);
-        navigation.navigate('Payment', { user });
+        if (result && cart) {
+          setCart({ ...cart, customerId: Number(result.data), customerName: customer.name });
+        }
+        navigation.dispatch(state => {
+          const routes = state.routes.filter(
+            r => r.name !== 'CustomerList' && r.name !== 'NewCustomer'
+          );
+
+          return CommonActions.reset({
+            ...state,
+            routes: [
+              ...routes,
+              {
+                name: 'Payment',
+                params: { user },
+              },
+            ],
+            index: routes.length,
+          });
+        });
+
       }
     }
     finally {
       setLoading(false);
     }
-  }, [customer, user, fileUrl, navigation]);
+  }, [customer, user, fileUrl, navigation, cart, setCart]);
 
   if (loading) {
     return (
@@ -175,7 +204,7 @@ const NewCustomerScreen = React.memo(({ route }: Props) => {
 
   return (
     <View className="flex flex-1">
-      <TitleHeaderComponent title='New Customer' isParent={false} userName={user.name} onPress={() => navigation.goBack()}></TitleHeaderComponent>
+      <TitleHeaderComponent title='New Customer' isParent={false} userName={user.name} onPress={() => navigation.pop()}></TitleHeaderComponent>
 
       <View className="w-full h-[2px] bg-gray-500 mb-2"></View>
       <View className="px-4 w-full">

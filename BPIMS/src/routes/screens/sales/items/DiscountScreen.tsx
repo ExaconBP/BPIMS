@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Text,
@@ -10,27 +10,42 @@ import {
 import NumericKeypad from '../../../../components/NumericKeypad';
 import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
 import { ItemStackParamList } from '../../../navigation/navigation';
-import { updateDiscount } from '../../../services/salesRepo';
+import { useCartStore } from '../../../services/cartStore';
 
 type Props = NativeStackScreenProps<ItemStackParamList, 'Discount'>;
 
 const DiscountScreen = React.memo(({ route }: Props) => {
-  const { discount, subTotal, user } = route.params;
+  const { user } = route.params;
+  const {
+    cart,
+    setCart,
+    subTotal
+  } = useCartStore();
+
   const [isLoading, setLoading] = useState<boolean>(false);
-  const [disc, setDisc] = useState<string>(Number(discount).toFixed(2));
+  const [disc, setDisc] = useState<string>(Number(cart?.discount).toFixed(2));
   const [percentage, setPercentage] = useState<string | null>(null);
   const [activeDiscount, setActiveDiscount] = useState<'cash' | 'percentage'>('cash');
   const navigation = useNavigation<NativeStackNavigationProp<ItemStackParamList>>();
 
+  useEffect(() => {
+    if (cart?.discount && subTotal) {
+      const p = (Number(cart.discount) / Number(subTotal)) * 100;
+      setPercentage(p.toFixed(2));
+    }
+  }, [cart?.discount, subTotal]);
+
   const applyDiscount = useCallback(async () => {
     try {
       setLoading(true);
-      await updateDiscount(Number(disc));
-      navigation.navigate('Cart', { user });
+      if (cart) {
+        setCart({ ...cart, discount: Number(disc) });
+      }
+      navigation.goBack();
     } finally {
       setLoading(false);
     }
-  }, [disc, navigation]);
+  }, [disc, navigation, cart, setCart]);
 
   const handleKeyPress = useCallback(
     (key: string) => {
@@ -91,7 +106,7 @@ const DiscountScreen = React.memo(({ route }: Props) => {
 
   return (
     <View style={{ flex: 1 }}>
-      <TitleHeaderComponent title={`Discount on ₱ ${subTotal}`} isParent={false} userName={user.name} onPress={() => navigation.goBack()}></TitleHeaderComponent>
+      <TitleHeaderComponent title={`Discount on ₱ ${subTotal.toFixed(2)}`} isParent={false} userName={user.name} onPress={() => navigation.goBack()}></TitleHeaderComponent>
       <View className="items-center bg-gray relative pb-32">
         <View className="w-full h-[2px] bg-gray-500 mb-2"></View>
         <View className="items-center w-[90%] mt-4 h-[60%]">

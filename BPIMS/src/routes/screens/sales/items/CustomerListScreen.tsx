@@ -17,6 +17,7 @@ import { ItemStackParamList } from '../../../navigation/navigation';
 import { getCustomerList } from '../../../services/customerRepo';
 import { updateCustomer } from '../../../services/salesRepo';
 import { CustomerListDto } from '../../../types/customerType';
+import { useCartStore } from '../../../services/cartStore';
 
 type Props = NativeStackScreenProps<ItemStackParamList, 'CustomerList'>;
 
@@ -26,7 +27,10 @@ const CustomerListScreen = React.memo(({ route }: Props) => {
   const [search, setSearch] = useState('');
   const [customers, setCustomers] = useState<CustomerListDto[]>([]);
   const [isSidebarVisible, setSidebarVisible] = useState(false);
-
+  const {
+    cart,
+    setCart
+  } = useCartStore();
   const inputRef = useRef<TextInput>(null);
   const navigation = useNavigation<NativeStackNavigationProp<ItemStackParamList>>();
 
@@ -56,11 +60,12 @@ const CustomerListScreen = React.memo(({ route }: Props) => {
     inputRef.current?.focus();
   }, []);
 
-  const updateCustomerCart = useCallback(async (id: number) => {
-    await updateCustomer(id);
-    if (user)
-      navigation.navigate('Payment', { user });
-  }, [navigation, user]);
+  const updateCustomerCart = useCallback(async (cust: CustomerListDto) => {
+    if (cart) {
+      setCart({ ...cart, customerId: Number(cust.id), customerName: cust.name });
+    }
+    navigation.pop();
+  }, [navigation, cart]);
 
   const navigateToUser = useCallback(() => {
     if (user) {
@@ -80,7 +85,7 @@ const CustomerListScreen = React.memo(({ route }: Props) => {
       {user && (
         <Sidebar isVisible={isSidebarVisible} toggleSidebar={toggleSidebar} userDetails={user} />
       )}
-      <TitleHeaderComponent title='Customers' isParent={false} userName={user.name} onPress={() => navigation.goBack()}></TitleHeaderComponent>
+      <TitleHeaderComponent title='Customers' isParent={false} userName={user.name} onPress={() => navigation.pop()}></TitleHeaderComponent>
 
       <View className="justify-center items-center bg-gray relative pb-8">
         <View className="flex flex-row w-full bg-gray-300 mt-1 py-1 px-3 justify-between items-center">
@@ -114,7 +119,7 @@ const CustomerListScreen = React.memo(({ route }: Props) => {
               filteredCustomers.map((customer) => (
                 <TouchableOpacity
                   key={customer.id}
-                  onPress={() => updateCustomerCart(customer.id)}
+                  onPress={() => updateCustomerCart(customer)}
                   className="bg-gray py-2 px-4 border-b border-gray-300 flex flex-row justify-between"
                 >
                   <ExpandableText text={customer.name}></ExpandableText>

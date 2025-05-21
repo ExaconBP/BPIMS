@@ -4,7 +4,7 @@ import FileViewer from 'react-native-file-viewer';
 import RNFS from 'react-native-fs';
 import { CallResultDto } from '../types/CallResultDto';
 import { DailyTransactionDto } from '../types/reportType';
-import { CartDto, CategoryDto, ItemDto, TransactionDto, TransactionRequestDto } from '../types/salesType';
+import { Cart, CartDto, CartItems, CategoryDto, ItemDto, TransactionDto, TransactionRequestDto } from '../types/salesType';
 import { getFromBaseApi, postToBaseApi, putToBaseApi } from '../utils/apiService';
 
 const requestTracker = new Map<string, boolean>();
@@ -97,13 +97,13 @@ export async function updateDiscount(discount: number | null) {
     }
 }
 
-export async function processPayment(amountReceived: number) {
+export async function processPayment(cart: Cart, cartItems: CartItems[], subTotal: number, totalAmount: number, amountReceived: number) {
     const key = getRequestKey('processPayment', { amountReceived });
     if (requestTracker.get(key)) return;
     requestTracker.set(key, true);
 
     try {
-        return await postToBaseApi<CallResultDto<TransactionRequestDto>>('processPayment', { amountReceived });
+        return await postToBaseApi<CallResultDto<TransactionRequestDto>>('processPayment', { cart, cartItems, subTotal, totalAmount, amountReceived });
     } finally {
         requestTracker.delete(key);
     }

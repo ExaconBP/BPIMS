@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -13,22 +13,25 @@ import ExpandableText from '../../../../components/ExpandableText';
 import NumericKeypad from '../../../../components/NumericKeypad';
 import TitleHeaderComponent from '../../../../components/TitleHeaderComponent';
 import { ItemStackParamList } from '../../../navigation/navigation';
-import {
-  deleteAllCartItems,
-  getCart,
-  removeCartItem,
-  updateDeliveryFee,
-  updateDiscount,
-  updateItemQuantity,
-} from '../../../services/salesRepo';
-import { Cart, CartItems } from '../../../types/salesType';
+import { useCartStore } from '../../../services/cartStore';
+import { CartItems } from '../../../types/salesType';
 
 type Props = NativeStackScreenProps<ItemStackParamList, 'Cart'>;
 
 const CartScreen = React.memo(({ route }: Props) => {
   const user = route.params.user;
-  const [cartItems, setCartItems] = useState<CartItems[]>([]);
-  const [cart, setCart] = useState<Cart>();
+  const {
+    cartItems,
+    subTotal,
+    totalAmount,
+    cart,
+    updateItem,
+    removeItem,
+    clearCart,
+    recalculateTotals,
+    setCart
+  } = useCartStore();
+
   const [isInputMode, setInputMode] = useState(false);
   const [doubleQuantity, setDoubleQuantity] = useState<string>('0.00');
   const [quantity, setQuantity] = useState<string>('0');
@@ -36,64 +39,20 @@ const CartScreen = React.memo(({ route }: Props) => {
   const [buttonLoading, setButtonLoading] = useState<boolean>(false);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [saveLoading, setSaveLoading] = useState<boolean>(false);
 
   const navigation = useNavigation<NativeStackNavigationProp<ItemStackParamList>>();
-  const fetchCartItems = useCallback(async () => {
-    try {
-      setLoading(true)
-      const result = await getCart();
-      setCartItems(result.data.cartItems);
-      setCart(result.data.cart);
-      if (result.data.cartItems.length === 0) {
-        navigation.navigate('Item');
-      }
-      setLoading(false)
-    }
-    finally {
-      setLoading(false)
-    }
-  }, [navigation]);
 
   useEffect(() => {
-    fetchCartItems();
-  }, [fetchCartItems]);
+    recalculateTotals();
+  }, [cartItems]);
 
-  const handleDelete = useCallback(async () => {
-    try {
-      setButtonLoading(true);
-      await deleteAllCartItems();
-      navigation.navigate('Item');
-      setButtonLoading(false);
-    }
-    finally {
-      setButtonLoading(false);
-    }
+  const handleDelete = useCallback(() => {
+    setButtonLoading(true);
+    clearCart(); // Zustand
+    navigation.goBack();
+    setButtonLoading(false);
   }, [navigation]);
 
-  const updateItem = useCallback(
-    async (cartItem: CartItems | undefined) => {
-      try {
-        if (!cartItem) return;
-
-        setButtonLoading(true);
-        const quantityToUpdate = cartItem.sellByUnit
-          ? Number(quantity)
-          : Number(doubleQuantity);
-        await updateItemQuantity(cartItem.id, quantityToUpdate);
-        await fetchCartItems();
-        setSelectedItem(undefined);
-        setQuantity('0');
-        setDoubleQuantity('0.00');
-        setInputMode(false);
-        setButtonLoading(false);
-      }
-      finally {
-        setButtonLoading(false);
-      }
-    },
-    [quantity, doubleQuantity, fetchCartItems]
-  );
 
   const openInput = useCallback((cartItem: CartItems) => {
     setInputMode(true);
@@ -109,7 +68,6 @@ const CartScreen = React.memo(({ route }: Props) => {
   const applyFee = useCallback(() => {
     if (user)
       navigation.navigate('DeliveryFee', {
-        deliveryFee: cart?.deliveryFee?.toString() || '0.00',
         user
       });
   }, [cart, navigation, user]);
@@ -117,50 +75,30 @@ const CartScreen = React.memo(({ route }: Props) => {
   const applyDiscount = useCallback(() => {
     if (cart) {
       navigation.navigate('Discount', {
-        discount: cart?.discount?.toString() || '0.00',
-        subTotal: cart.subTotal, user
+        user
       });
     }
   }, [cart, navigation, user]);
 
-  const removeDiscount = useCallback(async () => {
-    await updateDiscount(null);
-    await fetchCartItems();
-  }, [fetchCartItems]);
+  const removeDiscount = useCallback(() => {
+    if (cart) {
+      setCart({ ...cart, discount: 0 });
+    }
+  }, [cart, setCart]);
 
-  const removeFee = useCallback(async () => {
-    await updateDeliveryFee(null);
-    await fetchCartItems();
-  }, [fetchCartItems]);
+  const removeFee = useCallback(() => {
+    if (cart) {
+      setCart({ ...cart, deliveryFee: 0 });
+    }
+  }, [cart, setCart]);
 
   const handlePayment = useCallback(() => {
     navigation.navigate('Payment', { user });
   }, [navigation, user]);
 
-  const removeItem = useCallback(
-    async (id: number | undefined) => {
-      try {
-        if (!id) return;
-        setButtonLoading(true);
-        await removeCartItem(id);
-        await updateDiscount(null);
-        await fetchCartItems();
-        setSelectedItem(undefined);
-        setQuantity('0');
-        setDoubleQuantity('0.00');
-        setInputMode(false);
-        setButtonLoading(false);
-      }
-      finally {
-        setButtonLoading(false);
-      }
-    },
-    [fetchCartItems]
-  );
-
   const handleKeyPress = useCallback(
     (key: string) => {
-      if (selectedItem?.branchQty) {
+      if (selectedItem?.quantity) {
         if (!selectedItem?.sellByUnit) {
           let current = doubleQuantity.replace('.', '');
           current += key;
@@ -170,7 +108,7 @@ const CartScreen = React.memo(({ route }: Props) => {
             setMessage(null)
           }
           else {
-            setMessage(`Quantity exceeds available stock. Available stock: ${selectedItem.sellByUnit ? Math.round(selectedItem.branchQty) : selectedItem.branchQty}`);
+            setMessage(`Quantity exceeds available stock. Available stock: ${selectedItem.sellByUnit ? Math.round(selectedItem.quantity) : selectedItem.quantity}`);
           }
         } else {
           let current = quantity.toString();
@@ -205,12 +143,31 @@ const CartScreen = React.memo(({ route }: Props) => {
     }
   }, [selectedItem, quantity, doubleQuantity]);
 
-  const totalAmount = useMemo(() => {
-    const subTotal = Number(cart?.subTotal) || 0;
-    const discount = Number(cart?.discount) || 0;
-    const deliveryFee = Number(cart?.deliveryFee) || 0;
-    return (subTotal - discount + deliveryFee).toFixed(2);
-  }, [cart]);
+  const updateItemQty = useCallback((cartItem: CartItems | undefined) => {
+    if (!cartItem) return;
+
+    const quantityToUpdate = cartItem.sellByUnit
+      ? Number(quantity)
+      : Number(doubleQuantity);
+
+    updateItem({ ...cartItem, quantity: quantityToUpdate });
+
+    setSelectedItem(undefined);
+    setQuantity('0');
+    setDoubleQuantity('0.00');
+    setInputMode(false);
+  }, [quantity, doubleQuantity]);
+
+  const handleRemoveItem = useCallback((id: number | undefined) => {
+    if (!id) return;
+
+    removeItem(id);
+
+    setSelectedItem(undefined);
+    setQuantity('0');
+    setDoubleQuantity('0.00');
+    setInputMode(false);
+  }, []);
 
   if (isInputMode) {
     return (
@@ -235,7 +192,7 @@ const CartScreen = React.memo(({ route }: Props) => {
           <TouchableOpacity
             disabled={buttonLoading}
             className="px-3 mt-12"
-            onPress={() => removeItem(selectedItem?.id)}
+            onPress={() => handleRemoveItem(selectedItem?.id)}
           >
             <Text className="text-sm font-bold text-red-600">Remove Product</Text>
           </TouchableOpacity>
@@ -244,7 +201,7 @@ const CartScreen = React.memo(({ route }: Props) => {
           <NumericKeypad onPress={handleKeyPress} onBackspace={handleBackspace} />
           <TouchableOpacity
             disabled={buttonLoading}
-            onPress={() => updateItem(selectedItem)}
+            onPress={() => updateItemQty(selectedItem)}
             className={`w-[95%] rounded-xl p-3 flex flex-row items-center ${selectedItem?.sellByUnit
               ? quantity === '0'
                 ? 'bg-gray border-2 border-[#fe6500]'
@@ -279,7 +236,7 @@ const CartScreen = React.memo(({ route }: Props) => {
 
   return (
     <View className="flex flex-1 h-[100%]">
-      <TitleHeaderComponent title='Cart' isParent={false} userName={user.name} onPress={() => navigation.navigate('Item')}></TitleHeaderComponent>
+      <TitleHeaderComponent title='Cart' isParent={false} userName={user.name} onPress={() => navigation.goBack()}></TitleHeaderComponent>
 
       <View className="w-full h-[2px] bg-gray-500 mb-2"></View>
       {loading ? (
@@ -331,16 +288,16 @@ const CartScreen = React.memo(({ route }: Props) => {
             (
               <View className="w-full bg-gray-300 mb-2 h-[30%]">
                 <Text className="text-right text-base font-bold text-black px-3 mr-4 mt-4">
-                  SUB TOTAL: ₱ {cart?.subTotal}
+                  SUB TOTAL: ₱ {subTotal.toFixed(2)}
                 </Text>
 
-                {cart?.deliveryFee ? (
+                {cart?.deliveryFee != undefined ? (
                   <View className="flex flex-row items-center justify-end px-3 mt-4 space-x-2 mr-3">
                     <TouchableOpacity onPress={removeFee} className="p-1">
                       <Trash2 color="red" height={16} width={16} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={applyFee} className="p-1">
-                      <Text className="text-sm text-[#fe6500]">{`DELIVERY FEE: ₱ ${cart.deliveryFee}`}</Text>
+                      <Text className="text-sm text-[#fe6500]">{`DELIVERY FEE: ₱ ${cart.deliveryFee.toFixed(2)}`}</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -351,13 +308,13 @@ const CartScreen = React.memo(({ route }: Props) => {
                   </TouchableOpacity>
                 )}
 
-                {cart?.discount ? (
+                {cart?.discount != undefined ? (
                   <View className="flex flex-row items-center justify-end px-3 mt-4 space-x-2 mr-3">
                     <TouchableOpacity onPress={removeDiscount} className="p-1">
                       <Trash2 color="red" height={16} width={16} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={applyDiscount} className="p-1">
-                      <Text className="text-sm text-[#fe6500]">{`DISCOUNT: ₱ ${cart.discount}`}</Text>
+                      <Text className="text-sm text-[#fe6500]">{`DISCOUNT: ₱ ${cart.discount.toFixed(2)}`}</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -390,7 +347,7 @@ const CartScreen = React.memo(({ route }: Props) => {
           >
             <View className="flex-1 items-center">
               <Text className="font-bold text-center text-white text-lg">
-                TOTAL: ₱ {totalAmount}
+                TOTAL: ₱ {totalAmount.toFixed(2)}
               </Text>
             </View>
             {buttonLoading && <ActivityIndicator color="white" size="small" />}
